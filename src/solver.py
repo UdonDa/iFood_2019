@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision
 import sys
 from sys import exit
 import time
@@ -128,6 +129,12 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         target = target.cuda()
         input = input.cuda()
         # compute output
+
+        # TODO: save image
+        
+        torchvision.utils.save_image(input, './sample.png', normalize=True)
+        print('Success save image')
+
         output = model(input)
         loss = criterion(output, target)
 

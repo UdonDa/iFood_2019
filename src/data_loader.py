@@ -3,6 +3,7 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import torch.utils.data as data
+import PIL
 from PIL import Image
 import os
 import os.path
@@ -58,7 +59,7 @@ def create_transforms(args):
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    transforms.RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)])
+                    RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)])
 
     val_tform = transforms.Compose([transforms.Resize(args.image_min_size),
                                     transforms.CenterCrop(args.nw_input_size),

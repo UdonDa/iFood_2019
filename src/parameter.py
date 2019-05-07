@@ -56,7 +56,7 @@ def get_parameters():
     args.debug_weights = False
     args.test_overfit = False
     args.num_labels = 251
-    args.batch_size = 16
+    args.batch_size = 4
     
     args.num_workers = 8
     args.imagenet_mean = [0.485, 0.456, 0.406]
