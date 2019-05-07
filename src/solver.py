@@ -102,12 +102,14 @@ def load_checkpoint(model, optimizer, lr_scheduler, args, resume=True, ckpt=None
     return (model, optimizer, lr_scheduler, args, best_top3)
 
 
-def save_checkpoint(state, is_best, args, epoch):
+def save_checkpoint(state, is_best, args, epoch, best_top3):
+    best_top3 = str(best_top3)[:6]
     a, b, c = args.ckpt.split('_')
-    filename = '{}_{}-{}-{}'.format(a, b, epoch, c)
+    filename = '{}_{}-{}-{}-{}'.format(a, b, epoch, best_top3, c)
     a, b, c = args.best.split('_')
-    best_model_filename = '{}_{}-{}-{}'.format(a, b, epoch, c)
+    best_model_filename = '{}_{}-{}-{}-{}'.format(a, b, epoch, best_top3, c)
     torch.save(state, filename)
+    print('Sucess to save model: ', filename)
     if is_best:
         shutil.copyfile(filename, best_model_filename)
 
@@ -130,10 +132,9 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         input = input.cuda()
         # compute output
 
-        # TODO: save image
-        
-        torchvision.utils.save_image(input, './sample.png', normalize=True)
-        print('Success save image')
+        # # TODO: save image
+        # torchvision.utils.save_image(input, './sample.png', normalize=True)
+        # print('Success save image')
 
         output = model(input)
         loss = criterion(output, target)
@@ -159,7 +160,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
                 'Top-3 {top3.accuracy:.3f}'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss_meter=loss_meter, top3=top3))
-            # break # TODO: Debug
+            break # TODO: Debug
             
             
     print('TRAIN: [{epoch}]\t'
@@ -208,7 +209,7 @@ def validate(val_loader, model, criterion, epoch):
                     'Top-3 {top3.accuracy:.3f}'.format(
                     i, len(val_loader), batch_time=batch_time, loss_meter=loss_meter,
                     top3=top3))
-                # break # TODO: Debug
+                break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
@@ -263,12 +264,9 @@ def test(ofname, pfname, args, test_dset,
                     result = "%s,%s\n" % (os.path.basename(test_dset.img_name[index]), " ".join(map(str, resj)))
                     ofd.write(result)
                     index += 1
-                # print(result)
 
-                # index += output.shape[0]
-
-                # if i > 10: # TODO: debug
-                #     break
+                if i > 10: # TODO: debug
+                    break
                     
             
             print('TEST: [{epoch}]\t'
@@ -284,20 +282,14 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
         if args.debug_weights:
             wut = WeightUpdateTracker(model)
         for epoch in range(args.start_epoch, args.epochs):
-    #         adjust_learning_rate(optimizer, epoch)
-
-            # train for one epoch
             train(args, train_loader, model, criterion, optimizer, epoch)
 
             if args.debug_weights:
-                # debug: track weight updates
                 wut.track(model)
                 print('wut: ', wut)
 
-            # evaluate on validation set
             top3, val_loss = validate(val_loader, model, criterion, epoch)
 
-            # remember best top-3 accuracy and save checkpoint
             is_best = top3 > best_top3
             print('is_best: ', is_best)
             best_top3 = max(top3, best_top3)
@@ -311,18 +303,15 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                     'best_top3': best_top3,
                     'optimizer' : optimizer.state_dict(),
                     # 'scheduler' : scheduler.state_dict(),
-                    }, is_best, args, epoch
-                    )
+                    }, is_best, args, epoch, best_top3)
                 test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
-                sys.stdout.flush()
-                # adjust_learning_rate(optimizer, scheduler, epoch, top3, args)
+
             adjust_learning_rate(optimizer, lr_scheduler, epoch, val_loss, args)
 
             if epoch < 2:
                 pfname_ = '{}/param.json'.format(args.exp_dir)
                 with open(pfname_, "w") as pfd:
                     json.dump(vars(args), pfd, sort_keys=True, indent=4)
-            exit()
 
 def start_train(args):
     model = get_model(args)

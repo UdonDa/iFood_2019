@@ -93,7 +93,6 @@ def get_parameters():
     # args.nw_input_size = 331
     # args.fv_size = 4032
 
-
     args.arch = 'senet154'
     args.image_min_size = 256
     args.nw_input_size = 224
@@ -141,9 +140,9 @@ def get_parameters():
     args.random_erasing_sh = 0.4
     args.random_erasing_r1 = 0.3
 
+
     args.output_id = get_output_fname(args)
     args.exp_dir = '{}/{}'.format(args.output_dir, args.output_id)
-
     args.ckpt_dir = '{}/ckpt'.format(args.exp_dir)
     args.ckpt = args.ckpt_dir + os.sep + 'ckpt_%s.pth.tar' % (args.arch,)
     args.best = args.ckpt_dir + os.sep + 'best_%s.pth.tar' % (args.arch,)
@@ -154,9 +153,6 @@ def get_parameters():
     args.params_file = args.sub_dir + os.sep + 'params_%s.json' % args.output_id
 
     args.log_dir = args.exp_dir
-
-    # mkdir_exp_dir(args)
-
 
     return args
 
