@@ -9,13 +9,14 @@ import shutil
 from collections import OrderedDict
 import os
 import json
+import tensorboardX as tbx
 
 
 from models import create_model, WeightUpdateTracker
 from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK
 from data_loader import get_data_loader
 from parameter import mkdir_exp_dir
-
+from logger import Logger
 
 
 
@@ -114,7 +115,7 @@ def save_checkpoint(state, is_best, args, epoch, best_top3):
         shutil.copyfile(filename, best_model_filename)
 
 
-def train(args, train_loader, model, criterion, optimizer, epoch):
+def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     loss_meter = AverageMeter()
@@ -172,9 +173,12 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
                                             epoch_data_time=data_time.sum,
                                             loss_meter=loss_meter,
                                             top3=top3))
+    writer.add_scalar('Train/Loss', loss_meter.avg, epoch)
+    writer.add_scalar('Train/top3', top3.accuracy, epoch)
+    return writer
 
 
-def validate(val_loader, model, criterion, epoch):
+def validate(val_loader, model, criterion, epoch, writer):
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
     top3 = TopKAccuracyMicroAverageMeter(k=3)
@@ -220,8 +224,10 @@ def validate(val_loader, model, criterion, epoch):
                                                         epoch_time=batch_time.sum,
                                                         loss_meter=loss_meter,
                                                         top3=top3))
+    writer.add_scalar('Val/Loss', loss_meter.avg, epoch)
+    writer.add_scalar('Val/top3', top3.accuracy, epoch)
 
-    return top3.accuracy, loss_avg_epoch
+    return top3.accuracy, loss_avg_epoch, writer
 
 
 def test(ofname, pfname, args, test_dset,
@@ -273,22 +279,23 @@ def test(ofname, pfname, args, test_dset,
                 'Time {epoch_time:.3f})\t'.format(epoch=epoch, epoch_time=batch_time.sum))
 
 
-def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=None, args=None, optimizer=None, lr_scheduler=None, model=None, criterion=None, num_output_labels=3):
+def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=None, args=None, optimizer=None, lr_scheduler=None, model=None, criterion=None, num_output_labels=3, writer=None):
     if args.evaluate:
         validate(val_loader, model, criterion)
     else:
         model, optimizer, lr_scheduler, args, best_top3 = load_checkpoint(model, optimizer, lr_scheduler, args, resume=args.resume, ckpt=args.ckpt)
         wut = None
+        writer = writer
         if args.debug_weights:
             wut = WeightUpdateTracker(model)
         for epoch in range(args.start_epoch, args.epochs):
-            train(args, train_loader, model, criterion, optimizer, epoch)
+            writer = train(args, train_loader, model, criterion, optimizer, epoch, writer)
 
             if args.debug_weights:
                 wut.track(model)
                 print('wut: ', wut)
 
-            top3, val_loss = validate(val_loader, model, criterion, epoch)
+            top3, val_loss, writer = validate(val_loader, model, criterion, epoch, writer)
 
             is_best = top3 > best_top3
             print('is_best: ', is_best)
@@ -320,6 +327,7 @@ def start_train(args):
     lr_scheduler = get_lr_scheduler(args, optimizer)
 
     train_loader, val_loader, test_loader, test_dset = get_data_loader(args)
+    writer = tbx.SummaryWriter(args.log_dir)
 
     train_loop(
             train_loader=train_loader,
@@ -330,5 +338,6 @@ def start_train(args):
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             model=model,
-            criterion=criterion
+            criterion=criterion,
+            writer=writer
     )
