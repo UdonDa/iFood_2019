@@ -1,21 +1,48 @@
 from argparse import Namespace
+import os
+import socket
+import re
+from datetime import datetime
+from collections import OrderedDict
 
-def get_output_fname():
-    return "%s_%s_%s" % (args.author, args.arch, get_hostname_timestamp_id())
+
+def get_output_fname(args):
+    return "%s_%s" % (get_hostname_timestamp_id(), args.arch)
 
 def get_hostname_timestamp_id():
-    return socket.gethostname() + '_' + re.sub(r'\W+', '', str(datetime.now()))
+    return str(datetime.now())[:16].replace(' ', '-').replace(':', '').replace('-', '')
+    
+def mkdir_p(d):
+    os.makedirs(d, exist_ok=True)
+
+def mkdir_exp_dir(args):
+    mkdir_p(args.exp_dir)
+    mkdir_p(args.ckpt_dir)
+    mkdir_p(args.sub_dir)
+
+    
+    logfile = os.path.join(args.exp_dir, 'parameters.txt')
+    log_file = open(logfile, 'w')
+    p = OrderedDict()
+    p['arch'] = args.arch
+    p['image_min_size'] = args.image_min_size
+    p['nw_input_size'] = args.nw_input_size
+    p['lr'] = args.lr
+    p['lr_scheduler'] = args.lr_scheduler
+    p['loss_type'] = args.loss_type
+    p['epoch'] = args.epochs
+
+    for key, val in p.items():
+        log_file.write(key + ':' + str(val) + '\n')
+    log_file.close()
 
 def get_parameters():
 
     args = Namespace()
-    args.perm_dir = '/mnt/disks/imaterialist_fashion'
-    args.base_dir = '/mnt/ram-disk/imaterialist_fashion'
     # args.data_dir = '/host/space/horita-d/dataset/ifoodchallenge2019'
     args.data_dir = '/Users/daichi/Downloads/ifood'
 
-    args.input_dir = args.data_dir + os.sep + 'input'
-    args.output_dir = args.data_dir + os.sep + 'output'
+    args.output_dir = '../results'
 
     args.train_dir = args.data_dir + os.sep + 'train_set'
     args.val_dir = args.data_dir + os.sep + 'val_set'
@@ -23,7 +50,7 @@ def get_parameters():
 
     args.train_labels_csv = args.data_dir + os.sep + 'train_labels.csv'
     args.val_labels_csv = args.data_dir + os.sep + 'val_labels.csv'
-    # args.test_labels_csv = args.input_dir + os.sep + 'test_.csv'
+
     args.debug_weights = False
     args.test_overfit = False
     args.num_labels = 251
@@ -46,9 +73,11 @@ def get_parameters():
     args.pretrained = True
     args.resume = False
     args.start_epoch = 0
+
     args.small=1e-12                         # small value used for avoiding div by zero
-    args.optimizer_learning_rate = 1e-4      # Adam optimizer initial learning rate
-    # args.optimizer_learning_rate = 1e-3      # Adam optimizer initial learning rate
+    args.lr = 1e-4      # Adam optimizer initial learning rate
+    # args.lr = 1e-3      # Adam optimizer initial learning rate
+    args.lr_scheduler = '' # []
     args.scheduler_patience = 1              # Number of epochs with no improvement after which learning rate will be reduced
     args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
     args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
@@ -58,20 +87,27 @@ def get_parameters():
     args.epochs = 50
     args.print_details = False
     args.print_freq = args.batch_size
-    args.ckpt_dir = args.output_dir + os.sep + 'ckpt'
+
+    args.loss_type = 'ce' # ['ce', 'focal']
+
+    args.output_id = get_output_fname(args)
+    args.exp_dir = '{}/{}'.format(args.output_dir, args.output_id)
+
+    args.ckpt_dir = '{}/ckpt'.format(args.exp_dir)
     args.ckpt = args.ckpt_dir + os.sep + 'ckpt_%s.pth.tar' % (args.arch,)
     args.best = args.ckpt_dir + os.sep + 'best_%s.pth.tar' % (args.arch,)
     args.num_output_labels = 3
-    args.sub_dir = args.output_dir + os.sep + 'submissions'
-    args.author = 'deccanlearners'
-    args.output_id = get_output_fname()
-    args.output_file = args.sub_dir + os.sep + 'output_%s.csv' %  args.output_id
+    args.sub_dir = args.exp_dir + os.sep + 'submissions'
+    
+    args.output_file = args.sub_dir + os.sep + 'output_%s_%s.csv' %  (args.output_id, args.output_id)
     args.params_file = args.sub_dir + os.sep + 'params_%s.json' % args.output_id
-    args.min_img_bytes = 4792
+
+    args.log_dir = args.exp_dir
+
 
     return args
 
 
 if __name__ == '__main__':
     args = get_parameters()
-    print(args)
+    print(args.output_id)
