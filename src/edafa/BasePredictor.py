@@ -123,7 +123,7 @@ class BasePredictor(ABC):
 		"""
 		predict a set of images
 		
-		:param imgs: a list of images to predict
+		:param imgs: a list of images to predict (torch.Tensor)
 		:param overlap: overlap size between patches in prediction of large image (default = 0)
 		:return: predictions of all images
 		"""
@@ -132,6 +132,7 @@ class BasePredictor(ABC):
 			if len(img.shape) == 4 and img.shape[0] == 1:
 				img = img[0,:,:,:]
 			pred = self._predict_single(img)
+			
 			preds.append(pred)
 		return np.array(preds)
 	

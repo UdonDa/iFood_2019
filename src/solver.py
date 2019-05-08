@@ -13,7 +13,7 @@ import tensorboardX as tbx
 
 
 from models import create_model, WeightUpdateTracker
-from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK
+from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK, MyPredictor
 from data_loader import get_data_loader
 from parameter import mkdir_exp_dir
 from logger import Logger
@@ -161,7 +161,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
                 'Top-3 {top3.accuracy:.3f}'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss_meter=loss_meter, top3=top3))
-            break # TODO: Debug
+            # break # TODO: Debug
             
             
     print('TRAIN: [{epoch}]\t'
@@ -182,6 +182,7 @@ def validate(val_loader, model, criterion, epoch, writer):
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
     top3 = TopKAccuracyMicroAverageMeter(k=3)
+
 
     # switch to evaluate mode
     model.eval()
@@ -213,7 +214,7 @@ def validate(val_loader, model, criterion, epoch, writer):
                     'Top-3 {top3.accuracy:.3f}'.format(
                     i, len(val_loader), batch_time=batch_time, loss_meter=loss_meter,
                     top3=top3))
-                break # TODO: Debug
+                # break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
@@ -236,6 +237,8 @@ def test(ofname, pfname, args, test_dset,
     
 #     checkpoint = torch.load(best_model_ckpt)
 #     model.load_state_dict(checkpoint['state_dict'])
+
+    # predictor = MyPredictor(model, args.edata_json)
     
     batch_time = AverageMeter()
     res = OrderedDict()
@@ -255,7 +258,11 @@ def test(ofname, pfname, args, test_dset,
             for i, (input, _) in enumerate(test_loader):
                 # compute output
                 input = input.cuda()
+                # TODO: TTAに変える
                 output = model(input)
+                # print('input.size(): ', input.size())
+                # preds_with = predictor.predict_images(input)
+
                 res = torch.exp(output).topk(num_output_labels, dim=1)[1].cpu().numpy().tolist()
                 # measure elapsed time
                 batch_time.update(time.time() - end)
@@ -271,8 +278,8 @@ def test(ofname, pfname, args, test_dset,
                     ofd.write(result)
                     index += 1
 
-                if i > 10: # TODO: debug
-                    break
+                # if i > 10: # TODO: debug
+                #     break
                     
             
             print('TEST: [{epoch}]\t'
@@ -311,7 +318,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                     'optimizer' : optimizer.state_dict(),
                     # 'scheduler' : scheduler.state_dict(),
                     }, is_best, args, epoch, best_top3)
-                test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
+            test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
 
             adjust_learning_rate(optimizer, lr_scheduler, epoch, val_loss, args)
 
@@ -328,7 +335,6 @@ def start_train(args):
 
     train_loader, val_loader, test_loader, test_dset = get_data_loader(args)
     writer = tbx.SummaryWriter(args.log_dir)
-
     train_loop(
             train_loader=train_loader,
             val_loader=val_loader,

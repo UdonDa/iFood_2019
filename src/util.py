@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+from edafa.ClassPredictor import ClassPredictor
+from data_loader import create_transforms
+from parameter import get_parameters
 
 
 class F1MicroAverageMeter(object):
@@ -140,3 +143,17 @@ class AverageMeter(object):
 def adjust_learning_rate(optimizer, scheduler, epoch, measure, args):
     if not args.test_overfit:
         scheduler.step(measure)
+
+
+class MyPredictor(ClassPredictor):
+    def __init__(self, model, *args, **kwargs):
+        super().__init__(*args,**kwargs)
+        self.model = model
+
+    def predict_patches(self, patches):
+        preds = []
+        for i in range(patches.shape[0]):
+            print('patches[i].size(): ', patches[i].size())
+            pred = self.model(patches[i])
+            preds.append(pred.data.numpy())
+        return np.array(preds)

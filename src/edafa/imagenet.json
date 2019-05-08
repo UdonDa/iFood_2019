@@ -1,0 +1,16 @@
+{
+  "augs":[
+    "NO",
+    "ROT90",
+    "ROT180",
+    "ROT270",
+    "FLIP_UD",
+    "FLIP_LR",
+    "BRIGHT",
+    "CONTRAST",
+    "GAUSSIAN",
+    "GAMMA"
+  ],
+  "mean":"ARITH",
+  "bits":8
+}

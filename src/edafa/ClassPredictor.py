@@ -30,6 +30,6 @@ class ClassPredictor(BasePredictor):
 		:param img: image to predict
 		:return: prediction on the image
 		"""
-		aug_patches = self.apply_aug(img)
+		aug_patches = self.apply_aug(img) # ここでつまる.
 		pred = self.predict_patches(aug_patches)
 		return self.reverse_aug(pred)

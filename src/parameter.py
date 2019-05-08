@@ -56,9 +56,8 @@ def get_parameters():
     args.debug_weights = False
     args.test_overfit = False
     args.num_labels = 251
-    args.batch_size = 4
     
-    args.num_workers = 8
+    args.num_workers = 32
     args.imagenet_mean = [0.485, 0.456, 0.406]
     args.imagenet_std = [0.229, 0.224, 0.225]
     args.pretrain_dset_mean = args.imagenet_mean
@@ -78,33 +77,37 @@ def get_parameters():
     # args.arch = 'resnet101'
     # args.arch = 'resnet152'
 
-    # args.arch = 'pnasnet5large'
-    # args.image_min_size = 384
-    # args.nw_input_size = 331
-    # args.fv_size = 4320
+    args.arch = 'pnasnet5large'
+    args.image_min_size = 384
+    args.nw_input_size = 331
+    args.fv_size = 4320
+    args.batch_size = 24　# v100は16
 
-    # args.arch = 'resnext101_32x4d'
+    # args.arch = 'resnext10132x4d'
     # args.image_min_size = 256
     # args.nw_input_size = 224
     # args.fv_size = 2048
+    # args.batch_size = 64
 
     # args.arch = 'nasnetalarge'
     # args.image_min_size = 384
     # args.nw_input_size = 331
     # args.fv_size = 4032
+    # args.batch_size = 28
 
-    args.arch = 'senet154'
-    args.image_min_size = 256
-    args.nw_input_size = 224
-    args.fv_size = 2048
+    # args.arch = 'senet154'
+    # args.image_min_size = 256
+    # args.nw_input_size = 224
+    # args.fv_size = 2048
+    # args.batch_size = 64
 
     """Optimizer"""
-    # args.optimizer = 'Adam'
-    # args.lr = 1e-3
-    # args.beta1 = 0.9
-    # args.beta2 = 0.999
-    # args.amsgrad = True
-    # args.weight_decay = 5e-4
+    args.optimizer = 'Adam'
+    args.lr = 1e-3
+    args.beta1 = 0.9
+    args.beta2 = 0.999
+    args.amsgrad = True
+    args.weight_decay = 5e-4
 
     # args.optimizer = 'Sgd'
     # args.lr = 0.1
@@ -112,12 +115,12 @@ def get_parameters():
     # args.weight_decay = 5e-4
     # args.nesterov = True
 
-    args.optimizer = 'AdaBound'
-    args.lr = 1e-3
-    args.beta1 = 0.9
-    args.beta2 = 0.999
-    args.final_lr = 0.1
-    args.gamma = 1e-3
+    # args.optimizer = 'AdaBound'
+    # args.lr = 1e-3
+    # args.beta1 = 0.9
+    # args.beta2 = 0.999
+    # args.final_lr = 0.1
+    # args.gamma = 1e-3
     
     """Lr Scheduler"""
     args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
@@ -153,6 +156,8 @@ def get_parameters():
     args.params_file = args.sub_dir + os.sep + 'params_%s.json' % args.output_id
 
     args.log_dir = args.exp_dir
+
+    args.edata_json = '/home/yanai-lab/horita-d/ifood/src/edafa/imagenet.json'
 
     return args
 

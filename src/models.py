@@ -21,10 +21,10 @@ def create_model(args):
         if args.arch == 'pnasnet5large' or args.arch == 'nasnetalarge':
             model = models.__dict__[args.arch](pretrained='imagenet+background')
             
-        elif args.arch == 'resnext101_32x4d' or args.arch == 'senet154':
+        elif args.arch == 'senet154':            
             model = models.__dict__[args.arch](pretrained='imagenet')
-        print('model.input_size: ', model.input_size)
-
+        elif args.arch == 'resnext10132x4d':
+            model = models.__dict__["resnext101_32x4d"](pretrained='imagenet')
 
     else:
         print('=> From schratch model `{}`'.format(args.arch))
