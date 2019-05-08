@@ -136,8 +136,13 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
         # # TODO: save image
         # torchvision.utils.save_image(input, './sample.png', normalize=True)
         # print('Success save image')
-
+        
+        print('input.size(): ', input.size())
+        # output = model.module.features(input)
         output = model(input)
+        print(output.size())
+
+        exit()
         loss = criterion(output, target)
 
         # measure top-3 accuracy and record loss

@@ -29,6 +29,9 @@ def create_model(args):
     else:
         print('=> From schratch model `{}`'.format(args.arch))
         model = models.__dict__[arch]()
+
+    if args.resolution > 1:
+        model.avg_pool = nn.AdaptiveAvgPool2d(1)
     
     if args.last_linear == 'FCWithLogSigmoid':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)

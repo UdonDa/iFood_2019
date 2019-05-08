@@ -71,35 +71,37 @@ def get_parameters():
     args.last_linear = 'FCWithLogSigmoid' # [FCWithLogSigmoid, softmax]
 
     """model architecture"""
-    # args.image_min_size = 256
-    # args.nw_input_size = 224
+
+    # args.resolution = 2
+    args.resolution = 2
     
     # args.arch = 'resnet101'
     # args.arch = 'resnet152'
 
-    args.arch = 'pnasnet5large'
-    args.image_min_size = 384
-    args.nw_input_size = 331
-    args.fv_size = 4320
-    args.batch_size = 24　# v100は16
+    # args.arch = 'pnasnet5large'
+    # args.image_min_size = 384 * args.resolution
+    # args.nw_input_size = 331 * args.resolution
+    # args.fv_size = 4320
+    # args.batch_size = 24 // args.resolution　# v100は16
 
     # args.arch = 'resnext10132x4d'
-    # args.image_min_size = 256
-    # args.nw_input_size = 224
+    # args.image_min_size = 256 * args.resolution
+    # args.nw_input_size = 224 * args.resolution
     # args.fv_size = 2048
-    # args.batch_size = 64
+    # args.batch_size = 64 // args.resolution
 
     # args.arch = 'nasnetalarge'
-    # args.image_min_size = 384
-    # args.nw_input_size = 331
+    # args.image_min_size = 384 * args.resolution
+    # args.nw_input_size = 331 * args.resolution
     # args.fv_size = 4032
-    # args.batch_size = 28
+    # args.batch_size = 28 // args.resolution
 
-    # args.arch = 'senet154'
-    # args.image_min_size = 256
-    # args.nw_input_size = 224
-    # args.fv_size = 2048
+    args.arch = 'senet154'
+    args.image_min_size = 256 * args.resolution
+    args.nw_input_size = 224 * args.resolution
+    args.fv_size = 2048
     # args.batch_size = 64
+    args.batch_size = 4
 
     """Optimizer"""
     args.optimizer = 'Adam'
