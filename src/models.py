@@ -33,8 +33,11 @@ def create_model(args):
     if args.resolution > 1:
         model.avg_pool = nn.AdaptiveAvgPool2d(1)
     
-    if args.last_linear == 'FCWithLogSigmoid':
+    if args.loss_type == 'BCEWithLogitsLoss':
+        # if args.last_linear == 'FCWithLogSigmoid':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)
+    if args.loss_type == 'CrossEntropyLoss':
+        model.last_linear = nn.Linear(args.fv_size, args.num_labels)
 
     # if args.arch.startswith('alexnet') or args.arch.starswith('vgg'):
     #     model.features = nn.DataParallel(model.features).cuda()

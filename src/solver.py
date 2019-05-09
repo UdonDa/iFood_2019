@@ -30,6 +30,8 @@ def get_criterion(args):
     criterion = None
     if args.loss_type == 'BCEWithLogitsLoss':
         criterion = nn.BCEWithLogitsLoss().cuda()
+    elif args.loss_type == 'CrossEntropyLoss':
+        criterion = nn.CrossEntropyLoss().cuda()    
 
     return criterion
 
@@ -121,28 +123,21 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     loss_meter = AverageMeter()
     top3 = TopKAccuracyMicroAverageMeter(k=3)
 
-    # switch to train mode
     model.train()
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
-        # measure data loading time
         data_time.update(time.time() - end)
 
         target = target.cuda()
         input = input.cuda()
-        # compute output
 
-        # # TODO: save image
         # torchvision.utils.save_image(input, './sample.png', normalize=True)
         # print('Success save image')
-        
-        print('input.size(): ', input.size())
-        # output = model.module.features(input)
+
         output = model(input)
         print(output.size())
 
-        exit()
         loss = criterion(output, target)
 
         # measure top-3 accuracy and record loss

@@ -84,15 +84,16 @@ def get_parameters():
     """Lr Scheduler"""
     args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
 
+    """Loss"""
+    # args.loss_type = 'BCEWithLogitsLoss'
+    args.loss_type = 'CrossEntropyLoss'
+
 
     args.earlystopping_patience = 1          # early stopping patience is the number of epochs with no improvement after which training will be stopped
     args.earlystopping_min_delta = 1e-5      # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement
 
     args.evaluate = False
     args.epochs = 200
-
-    # args.loss_type = 'ce' # ['ce', 'focal', 'BCEWithLogitsLoss']
-    args.loss_type = 'BCEWithLogitsLoss' # ['ce', 'focal', 'BCEWithLogitsLoss']
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
@@ -196,7 +197,6 @@ def get_parameters():
         args.scheduler_patience = 1              # Number of epochs with no improvement after which learning rate will be reduced
         args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
         args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
-
 
     return args
 
