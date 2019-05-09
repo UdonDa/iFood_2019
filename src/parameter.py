@@ -67,7 +67,6 @@ def get_parameters():
     args.last_linear = 'FCWithLogSigmoid' # [FCWithLogSigmoid, softmax]
 
     """model architecture"""
-
     # args.resolution = 1
     args.resolution = 2
 
@@ -83,6 +82,7 @@ def get_parameters():
 
     """Lr Scheduler"""
     args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
+    args.lr_scheduler = 'CosineAnnealingLR'
 
     """Loss"""
     # args.loss_type = 'BCEWithLogitsLoss'
@@ -197,6 +197,10 @@ def get_parameters():
         args.scheduler_patience = 1              # Number of epochs with no improvement after which learning rate will be reduced
         args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
         args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
+    elif args.lr_scheduler == 'CosineAnnealingLR':
+        args.T_max = 20
+        args.eta_min = 0
+        args.last_epoch = -1
 
     return args
 

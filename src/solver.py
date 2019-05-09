@@ -82,6 +82,13 @@ def get_lr_scheduler(args, optimizer):
                             factor=args.scheduler_factor,
                             verbose=1
                             )
+    if args.lr_scheduler == 'CosineAnnealingLR':
+        lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                            optimizer,
+                            args.T_max,
+                            eta_min=args.eta_min,
+                            last_epoch=args.last_epoch
+                            )
     return lr_scheduler
 
 
