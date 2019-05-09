@@ -34,7 +34,6 @@ def create_model(args):
         model.avg_pool = nn.AdaptiveAvgPool2d(1)
     
     if args.loss_type == 'BCEWithLogitsLoss':
-        # if args.last_linear == 'FCWithLogSigmoid':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)
     if args.loss_type == 'CrossEntropyLoss':
         model.last_linear = nn.Linear(args.fv_size, args.num_labels)

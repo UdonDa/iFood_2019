@@ -109,6 +109,12 @@ class TopKAccuracyMicroAverageMeter(object):
         self.accuracy = (self.TP + self.TN) / (self.small + self.TP + self.FP + self.TN + self.FN)
         
     def confusion_matrix_(self, labels, pred):
+        # TODO: If you use cross entropy, please labels to one hot vector label.
+        zeros = torch.zeros(labels.size(0), 251).cuda()
+        for batch in range(zeros.size(0)):
+            zeros[batch][labels[batch].item()] = 1
+        labels = zeros
+
         with torch.no_grad():
             real = labels
             threshold = pred.topk(self.k)[0].min()

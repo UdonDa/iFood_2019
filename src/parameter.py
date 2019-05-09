@@ -31,7 +31,6 @@ def mkdir_exp_dir(args):
     p['lr_scheduler'] = args.lr_scheduler
     p['loss_type'] = args.loss_type
     p['epoch'] = args.epochs
-    p['last_linear'] = args.last_linear
 
     for key, val in p.items():
         log_file.write(key + ':' + str(val) + '\n')
@@ -64,11 +63,9 @@ def get_parameters():
     args.start_epoch = 1
     args.small = 1e-12
 
-    args.last_linear = 'FCWithLogSigmoid' # [FCWithLogSigmoid, softmax]
-
     """model architecture"""
-    # args.resolution = 1
-    args.resolution = 2
+    args.resolution = 1
+    # args.resolution = 2
 
     # args.arch = 'pnasnet5large'
     args.arch = 'resnext10132x4d'
@@ -81,7 +78,7 @@ def get_parameters():
     # args.optimizer = 'AdaBound'
 
     """Lr Scheduler"""
-    args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
+    # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
     args.lr_scheduler = 'CosineAnnealingLR'
 
     """Loss"""
@@ -144,7 +141,7 @@ def get_parameters():
             args.nw_input_size = 448
             args.batch_size = 24
     
-    elif args.arch = 'resnext10132x4d':
+    elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]
@@ -157,7 +154,7 @@ def get_parameters():
             args.nw_input_size = 448
             args.batch_size = 24
 
-    elif args.arch = 'resnext10132x4d':
+    elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]

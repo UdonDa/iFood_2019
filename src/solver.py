@@ -136,15 +136,12 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     for i, (input, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
 
-        target = target.cuda()
+        target = target.cuda().long()
         input = input.cuda()
 
         # torchvision.utils.save_image(input, './sample.png', normalize=True)
-        # print('Success save image')
 
         output = model(input)
-        print(output.size())
-
         loss = criterion(output, target)
 
         # measure top-3 accuracy and record loss
@@ -168,7 +165,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
                 'Top-3 {top3.accuracy:.3f}'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss_meter=loss_meter, top3=top3))
-            # break # TODO: Debug
+            break # TODO: Debug
             
             
     print('TRAIN: [{epoch}]\t'
@@ -198,7 +195,7 @@ def validate(val_loader, model, criterion, epoch, writer):
         end = time.time()
         loss_avg_epoch = 0.0
         for i, (input, target) in enumerate(val_loader):
-            input = input.cuda()
+            input = input.cuda().long()
             target = target.cuda()
 
             # compute output
@@ -221,7 +218,7 @@ def validate(val_loader, model, criterion, epoch, writer):
                     'Top-3 {top3.accuracy:.3f}'.format(
                     i, len(val_loader), batch_time=batch_time, loss_meter=loss_meter,
                     top3=top3))
-                # break # TODO: Debug
+                break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
@@ -285,8 +282,8 @@ def test(ofname, pfname, args, test_dset,
                     ofd.write(result)
                     index += 1
 
-                # if i > 10: # TODO: debug
-                #     break
+                if i > 10: # TODO: debug
+                    break
                     
             
             print('TEST: [{epoch}]\t'

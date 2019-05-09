@@ -54,12 +54,13 @@ def create_transforms(args):
                     transforms.RandomHorizontalFlip(),
                     transforms.TenCrop(args.nw_input_size),
                     transforms.Lambda(lambda crops: crops[np.random.randint(len(crops))]),
-                    transforms.ColorJitter(hue=.05, saturation=.05),
+                    # transforms.ColorJitter(hue=.05, saturation=.05),
                     transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)])
+                    # RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
+                    ])
 
     val_tform = transforms.Compose([transforms.Resize(args.image_min_size),
                                     transforms.CenterCrop(args.nw_input_size),
@@ -104,16 +105,17 @@ class FoodDataset(data.Dataset):
                 img = self.img_name[index]
                 # print('img path in test_dst: ', img)
             
-            # Make label
-            zeros = torch.zeros(self.num_labels)
-            if not self.test:
-                zeros[label] = 1
+            # # Make label # TODO: For without cross entropy
+            # zeros = torch.zeros(self.num_labels)
+            # if not self.test:
+            #     zeros[label] = 1
             
             # Make img
             img = pil_loader(img)
             img = self.transform(img)
             
-            return img, zeros
+            # return img, zeros
+            return img, label
 
         def __len__(self):
             return len(self.img_name)
