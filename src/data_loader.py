@@ -103,6 +103,7 @@ class FoodDataset(data.Dataset):
                 img = '{}/{}'.format(self.root, img)
             else:
                 img = self.img_name[index]
+                label = torch.Tensor(0)
                 # print('img path in test_dst: ', img)
             
             # # Make label # TODO: For without cross entropy
@@ -148,20 +149,20 @@ def get_data_loader(args):
                                            batch_size=args.batch_size,
                                            shuffle=True,
                                            num_workers=args.num_workers,
-                                           pin_memory=True,
+                                        #    pin_memory=True,
                                           )
     val_loader = torch.utils.data.DataLoader(val_dset,
                                          batch_size=args.batch_size,
                                          shuffle=False,
                                          num_workers=args.num_workers,
-                                         pin_memory=True
+                                        #  pin_memory=True
                                         )
 
     test_loader = torch.utils.data.DataLoader(test_dset,
                                          batch_size=args.batch_size,
                                          shuffle=False,
                                          num_workers=args.num_workers,
-                                         pin_memory=True
+                                        #  pin_memory=True
                                         )
     return train_loader, val_loader, test_loader, test_dset
 

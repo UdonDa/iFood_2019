@@ -136,8 +136,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     for i, (input, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
 
-        target = target.cuda().long()
-        input = input.cuda()
+        target, input = target.cuda().long(), input.cuda()
 
         # torchvision.utils.save_image(input, './sample.png', normalize=True)
 
@@ -195,8 +194,7 @@ def validate(val_loader, model, criterion, epoch, writer):
         end = time.time()
         loss_avg_epoch = 0.0
         for i, (input, target) in enumerate(val_loader):
-            input = input.cuda().long()
-            target = target.cuda()
+            input, target = input.cuda(), target.cuda().long()
 
             # compute output
             output = model(input)
