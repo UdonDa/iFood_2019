@@ -58,10 +58,6 @@ def get_parameters():
     args.num_labels = 251
     
     args.num_workers = 32
-    args.imagenet_mean = [0.485, 0.456, 0.406]
-    args.imagenet_std = [0.229, 0.224, 0.225]
-    args.pretrain_dset_mean = args.imagenet_mean
-    args.pretrain_dset_std = args.imagenet_std
 
     args.pretrained = True
     args.resume = False
@@ -72,70 +68,28 @@ def get_parameters():
 
     """model architecture"""
 
-    # args.resolution = 2
+    # args.resolution = 1
     args.resolution = 2
-    
-    # args.arch = 'resnet101'
-    # args.arch = 'resnet152'
 
     # args.arch = 'pnasnet5large'
-    # args.image_min_size = 384 * args.resolution
-    # args.nw_input_size = 331 * args.resolution
-    # args.fv_size = 4320
-    # args.batch_size = 24 // args.resolution　# v100は16
-
-    # args.arch = 'resnext10132x4d'
-    # args.image_min_size = 256 * args.resolution
-    # args.nw_input_size = 224 * args.resolution
-    # args.fv_size = 2048
-    # args.batch_size = 64 // args.resolution
-
+    args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
-    # args.image_min_size = 384 * args.resolution
-    # args.nw_input_size = 331 * args.resolution
-    # args.fv_size = 4032
-    # args.batch_size = 28 // args.resolution
-
-    args.arch = 'senet154'
-    args.image_min_size = 256 * args.resolution
-    args.nw_input_size = 224 * args.resolution
-    args.fv_size = 2048
-    # args.batch_size = 64
-    args.batch_size = 4
+    # args.arch = 'senet154'
 
     """Optimizer"""
-    args.optimizer = 'Adam'
-    args.lr = 1e-3
-    args.beta1 = 0.9
-    args.beta2 = 0.999
-    args.amsgrad = True
-    args.weight_decay = 5e-4
-
-    # args.optimizer = 'Sgd'
-    # args.lr = 0.1
-    # args.momentum = 0.9
-    # args.weight_decay = 5e-4
-    # args.nesterov = True
-
+    # args.optimizer = 'Adam'
+    args.optimizer = 'Sgd'
     # args.optimizer = 'AdaBound'
-    # args.lr = 1e-3
-    # args.beta1 = 0.9
-    # args.beta2 = 0.999
-    # args.final_lr = 0.1
-    # args.gamma = 1e-3
-    
+
     """Lr Scheduler"""
     args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
-    args.scheduler_patience = 1              # Number of epochs with no improvement after which learning rate will be reduced
-    args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
-    args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
+
+
     args.earlystopping_patience = 1          # early stopping patience is the number of epochs with no improvement after which training will be stopped
     args.earlystopping_min_delta = 1e-5      # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement
 
     args.evaluate = False
     args.epochs = 200
-    args.print_details = False
-    args.print_freq = args.batch_size
 
     # args.loss_type = 'ce' # ['ce', 'focal', 'BCEWithLogitsLoss']
     args.loss_type = 'BCEWithLogitsLoss' # ['ce', 'focal', 'BCEWithLogitsLoss']
@@ -160,6 +114,89 @@ def get_parameters():
     args.log_dir = args.exp_dir
 
     args.edata_json = '/home/yanai-lab/horita-d/ifood/src/edafa/imagenet.json'
+
+    
+    """Model Architecture"""
+    if args.arch == 'pnasnet5large':
+        args.fv_size = 4320
+        args.imagenet_mean = [0.5, 0.5, 0.5]
+        args.imagenet_std = [0.5, 0.5, 0.5]
+        if args.resolution == 1:
+            args.image_min_size = 384
+            args.nw_input_size = 331
+            args.batch_size = 24
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            args.batch_size = 24
+
+    elif args.arch == 'nasnetalarge':
+        args.fv_size = 4032
+        args.imagenet_mean = [0.5, 0.5, 0.5]
+        args.imagenet_std = [0.5, 0.5, 0.5]
+        if args.resolution == 1:
+            args.image_min_size = 384
+            args.nw_input_size = 331
+            args.batch_size = 24
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            args.batch_size = 24
+    
+    elif args.arch = 'resnext10132x4d':
+        args.fv_size = 2048
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 256
+            args.nw_input_size = 224
+            args.batch_size = 24
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            args.batch_size = 24
+
+    elif args.arch = 'resnext10132x4d':
+        args.fv_size = 2048
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 256
+            args.nw_input_size = 224
+            args.batch_size = 24
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            args.batch_size = 24
+    
+    args.pretrain_dset_mean = args.imagenet_mean
+    args.pretrain_dset_std = args.imagenet_std
+
+    """Optimizer"""
+    if args.optimizer == 'Adam':
+        args.lr = 1e-3
+        args.beta1 = 0.9
+        args.beta2 = 0.999
+        args.amsgrad = True
+        args.weight_decay = 5e-4
+    elif args.optimizer == 'Sgd':
+        args.lr = 0.1
+        args.momentum = 0.9
+        args.weight_decay = 5e-4
+        args.nesterov = True
+    elif args.optimizer == 'AdaBound':
+        args.lr = 1e-3
+        args.beta1 = 0.9
+        args.beta2 = 0.999
+        args.final_lr = 0.1
+        args.gamma = 1e-3
+
+    """Lr scheduler"""
+    if args.lr_scheduler == 'ReduceLROnPlateau':
+        args.scheduler_patience = 1              # Number of epochs with no improvement after which learning rate will be reduced
+        args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
+        args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
+
 
     return args
 
