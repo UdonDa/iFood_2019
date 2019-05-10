@@ -21,11 +21,11 @@ def create_model(args):
 
         if args.arch == 'pnasnet5large' or args.arch == 'nasnetalarge':
             model = models.__dict__[args.arch](pretrained='imagenet+background')
-            
-        elif args.arch == 'senet154':            
+        elif args.arch == 'senet154' or args.arch == 'polynet' or args.arch == 'inceptionresnetv2' or args.arch == 'inceptionv4':
             model = models.__dict__[args.arch](pretrained='imagenet')
         elif args.arch == 'resnext10132x4d':
             model = models.__dict__["resnext101_32x4d"](pretrained='imagenet')
+
         elif args.arch == 'resnet18':
             model = resnet18(pretrained=args.pretrained)
         elif args.arch == 'resnet152':

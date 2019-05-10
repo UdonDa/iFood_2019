@@ -72,7 +72,10 @@ def get_parameters():
     # args.arch = 'pnasnet5large'
     # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
-    args.arch = 'senet154'
+    # args.arch = 'senet154'
+    # args.arch = 'polynet'
+    # args.arch = 'inceptionresnetv2'
+    args.arch = 'inceptionv4'
 
     # Torchvisions
     # args.arch = 'resnet18'
@@ -186,6 +189,71 @@ def get_parameters():
                 args.batch_size = 20
             if num_of_gpus == 10:
                 args.batch_size = 44
+
+    elif args.arch == 'polynet':
+        args.fv_size = 2048
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 378
+            args.nw_input_size = 331
+            if num_of_gpus == 2:
+                args.batch_size = 20
+            if num_of_gpus == 4:
+                args.batch_size = 80
+            if num_of_gpus == 10:
+                args.batch_size = 128
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+
+    elif args.arch == 'inceptionresnetv2':
+        args.fv_size = 1536
+        args.imagenet_mean = [0.5, 0.5, 0.5]
+        args.imagenet_std = [0.5, 0.5, 0.5]
+        if args.resolution == 1:
+            args.image_min_size = 339
+            args.nw_input_size = 299
+            if num_of_gpus == 2:
+                args.batch_size = 64
+            if num_of_gpus == 4:
+                args.batch_size = 80
+            if num_of_gpus == 10:
+                args.batch_size = 128
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+
+    elif args.arch == 'inceptionv4':
+        args.fv_size = 1536
+        args.imagenet_mean = [0.5, 0.5, 0.5]
+        args.imagenet_std = [0.5, 0.5, 0.5]
+        if args.resolution == 1:
+            args.image_min_size = 339
+            args.nw_input_size = 299
+            if num_of_gpus == 2:
+                args.batch_size = 90
+            if num_of_gpus == 4:
+                args.batch_size = 80
+            if num_of_gpus == 10:
+                args.batch_size = 128
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+
+                
 
     elif args.arch == 'resnet18':
         args.fv_size = 512
