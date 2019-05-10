@@ -4,6 +4,7 @@ import socket
 import re
 from datetime import datetime
 from collections import OrderedDict
+import torch
 
 
 def get_output_fname(args):
@@ -67,10 +68,15 @@ def get_parameters():
     args.resolution = 1
     # args.resolution = 2
 
+    # Pretrainedmodels
     # args.arch = 'pnasnet5large'
-    args.arch = 'resnext10132x4d'
+    # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
-    # args.arch = 'senet154'
+    args.arch = 'senet154'
+
+    # Torchvisions
+    # args.arch = 'resnet18'
+    # args.arch = 'resnet152'
 
     """Optimizer"""
     # args.optimizer = 'Adam'
@@ -94,9 +100,8 @@ def get_parameters():
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
-    args.random_erasing_sh = 0.4
-    args.random_erasing_r1 = 0.3
-
+    args.random_erasing_sh = 0.3
+    args.random_erasing_r1 = 0.2
 
     args.output_id = get_output_fname(args)
     args.exp_dir = '{}/{}'.format(args.output_dir, args.output_id)
@@ -114,6 +119,7 @@ def get_parameters():
     args.edata_json = '/home/yanai-lab/horita-d/ifood/src/edafa/imagenet.json'
 
     
+    num_of_gpus = torch.cuda.device_count()
     """Model Architecture"""
     if args.arch == 'pnasnet5large':
         args.fv_size = 4320
@@ -122,11 +128,13 @@ def get_parameters():
         if args.resolution == 1:
             args.image_min_size = 384
             args.nw_input_size = 331
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 32
         if args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 16
 
     elif args.arch == 'nasnetalarge':
         args.fv_size = 4032
@@ -135,11 +143,13 @@ def get_parameters():
         if args.resolution == 1:
             args.image_min_size = 384
             args.nw_input_size = 331
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 28
         if args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 12
     
     elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
@@ -148,24 +158,76 @@ def get_parameters():
         if args.resolution == 1:
             args.image_min_size = 256
             args.nw_input_size = 224
-            args.batch_size = 24
+            if num_of_gpus == 2:
+                args.batch_size = 20
+            if num_of_gpus == 4:
+                args.batch_size = 100
         if args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 32
 
-    elif args.arch == 'resnext10132x4d':
+    elif args.arch == 'senet154':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]
         if args.resolution == 1:
             args.image_min_size = 256
             args.nw_input_size = 224
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 80
+            if num_of_gpus == 10:
+                args.batch_size = 128
         if args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
-            args.batch_size = 24
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+
+    elif args.arch == 'resnet18':
+        args.fv_size = 512
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 256
+            args.nw_input_size = 224
+            if num_of_gpus == 2:
+                args.batch_size = 300
+            elif num_of_gpus == 4:
+                args.batch_size = 80
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            if num_of_gpus == 2:
+                args.batch_size = 100
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+    elif args.arch == 'resnet152':
+        args.fv_size = 2048
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 256
+            args.nw_input_size = 224
+            if num_of_gpus == 2:
+                args.batch_size = 300
+            elif num_of_gpus == 4:
+                args.batch_size = 80
+        if args.resolution == 2:
+            args.image_min_size = 498
+            args.nw_input_size = 448
+            if num_of_gpus == 2:
+                args.batch_size = 100
+            if num_of_gpus == 4:
+                args.batch_size = 20
+            if num_of_gpus == 10:
+                args.batch_size = 44
+
     
     args.pretrain_dset_mean = args.imagenet_mean
     args.pretrain_dset_std = args.imagenet_std
@@ -195,7 +257,7 @@ def get_parameters():
         args.scheduler_threshold = 1e-6          # learning rate scheduler threshold for measuring the new optimum, to only focus on significant changes
         args.scheduler_factor = 0.1        # learning rate scheduler factor by which the learning rate will be reduced. new_lr = lr * factor
     elif args.lr_scheduler == 'CosineAnnealingLR':
-        args.T_max = 20
+        args.T_max = args.epochs
         args.eta_min = 0
         args.last_epoch = -1
 

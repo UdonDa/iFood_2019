@@ -10,7 +10,7 @@ from collections import OrderedDict
 import os
 import json
 import tensorboardX as tbx
-
+import datetime
 
 from models import create_model, WeightUpdateTracker
 from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK, MyPredictor
@@ -58,7 +58,7 @@ def get_optimizer(args, model):
                         nesterov=args.nesterov
         )
     elif args.optimizer == 'AdaBound':
-        from adabound import AdaBound
+        from adabound_optim import AdaBound
         optimizer = AdaBound(
                         model.parameters(),
                         lr=args.lr,
@@ -95,6 +95,7 @@ def get_lr_scheduler(args, optimizer):
 def load_checkpoint(model, optimizer, lr_scheduler, args, resume=True, ckpt=None):
     """optionally resume from a checkpoint."""
     best_top3 = 0
+    best_acc = 0
     if args.resume:
         if os.path.isfile(ckpt):
             print("=> loading checkpoint '{}'".format(ckpt))
@@ -109,11 +110,11 @@ def load_checkpoint(model, optimizer, lr_scheduler, args, resume=True, ckpt=None
         else:
             print("=> no checkpoint found at '{}'".format(ckpt))
             best_top3 = 0
-    return (model, optimizer, lr_scheduler, args, best_top3)
+    return (model, optimizer, lr_scheduler, args, best_top3, best_acc)
 
 
-def save_checkpoint(state, is_best, args, epoch, best_top3):
-    best_top3 = str(best_top3)[:6]
+def save_checkpoint(state, is_best, args, epoch, best_acc):
+    best_top3 = str(best_acc)[:6]
     a, b, c = args.ckpt.split('_')
     filename = '{}_{}-{}-{}-{}'.format(a, b, epoch, best_top3, c)
     a, b, c = args.best.split('_')
@@ -125,27 +126,32 @@ def save_checkpoint(state, is_best, args, epoch, best_top3):
 
 
 def train(args, train_loader, model, criterion, optimizer, epoch, writer):
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
     loss_meter = AverageMeter()
     top3 = TopKAccuracyMicroAverageMeter(k=3)
+    correct = 0
+    total = 0
+    acc = 0
 
     model.train()
 
-    end = time.time()
-    for i, (input, target) in enumerate(train_loader):
-        data_time.update(time.time() - end)
+    start_time = time.time()
 
+    for i, (input, target) in enumerate(train_loader):
         target, input = target.cuda().long(), input.cuda()
 
         # torchvision.utils.save_image(input, './sample.png', normalize=True)
 
         output = model(input)
+
         loss = criterion(output, target)
 
-        # measure top-3 accuracy and record loss
         loss_meter.update(loss.item(), input.size(0))
         top3.update(target, torch.exp(output))
+
+        _, predicted = torch.max(output, 1)
+        total += target.size(0)
+        correct += (predicted == target).sum().item()
+        acc = correct / total
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -153,46 +159,45 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
         optimizer.step()
 
         # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+        et = time.time() - start_time
+        et = str(datetime.timedelta(seconds=et))[:-7]
 
         if i % 10 == 0:
             print('Train: [{0}][{1}/{2}]\t'
-                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                 'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
-                'Top-3 {top3.accuracy:.3f}'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss_meter=loss_meter, top3=top3))
-            break # TODO: Debug
+                'Top-3 {top3.accuracy:.3f}\t Acc {acc:.4f}'.format(
+                epoch, i, len(train_loader), loss_meter=loss_meter, top3=top3, acc=acc))
+            # break # TODO: Debug
             
             
     print('TRAIN: [{epoch}]\t'
-        'Time {epoch_time:.3f}\t'
-        'Data {epoch_data_time:.3f}\t'
         'Loss {loss_meter.avg:.4f}\t'
-        'Top-3 {top3.accuracy:.3f}'.format(epoch=epoch,
-                                            epoch_time=batch_time.sum,
-                                            epoch_data_time=data_time.sum,
-                                            loss_meter=loss_meter,
-                                            top3=top3))
+        'Top-3 {top3.accuracy:.3f}\t'
+        'Acc {acc:.4f}'.format(epoch=epoch,
+                            loss_meter=loss_meter,
+                            top3=top3,
+                            acc=acc))
     writer.add_scalar('Train/Loss', loss_meter.avg, epoch)
     writer.add_scalar('Train/top3', top3.accuracy, epoch)
+    writer.add_scalar('Train/Acc', acc, epoch)
     return writer
 
 
 def validate(val_loader, model, criterion, epoch, writer):
-    batch_time = AverageMeter()
     loss_meter = AverageMeter()
     top3 = TopKAccuracyMicroAverageMeter(k=3)
+    acc = 0
+    correct = 0
+    total = 0
 
 
     # switch to evaluate mode
     model.eval()
 
     with torch.no_grad():
-        end = time.time()
+        start_time = time.time()
         loss_avg_epoch = 0.0
+
         for i, (input, target) in enumerate(val_loader):
             input, target = input.cuda(), target.cuda().long()
 
@@ -200,37 +205,44 @@ def validate(val_loader, model, criterion, epoch, writer):
             output = model(input)
             loss = criterion(output, target)
 
+            # compute accuracy
+            _, predicted = torch.max(output, 1)
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+            acc = correct / total
+
             # measure F1 and record loss
             loss_meter.update(loss.item(), input.size(0))
             top3.update(target, torch.exp(output))
             loss_avg_epoch = float(i * loss.item()) / float(i + 1)
             
             # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
+            et = time.time() - start_time
+            et = str(datetime.timedelta(seconds=et))[:-7]
 
             if i % 10 == 0:
                 print('Val: [{0}/{1}]\t'
-                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
-                    'Top-3 {top3.accuracy:.3f}'.format(
-                    i, len(val_loader), batch_time=batch_time, loss_meter=loss_meter,
-                    top3=top3))
-                break # TODO: Debug
+                    'Top-3 {top3.accuracy:.3f}\t'
+                    'Acc {acc:.4f}'.format(
+                    i, len(val_loader), loss_meter=loss_meter,
+                    top3=top3, acc=acc))
+                # break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
         print('VAL: [{epoch}]\t'
-                    'Time {epoch_time:.3f}\t'
                     'Loss {loss_meter.avg:.4f}\t'
-                    'Top-3 {top3.accuracy:.3f}'.format(epoch=epoch,
-                                                        epoch_time=batch_time.sum,
-                                                        loss_meter=loss_meter,
-                                                        top3=top3))
+                    'Top-3 {top3.accuracy:.3f}\t'
+                    'Acc {acc:.4f}'.format(epoch=epoch,
+                                        loss_meter=loss_meter,
+                                        top3=top3,
+                                        acc=acc))
     writer.add_scalar('Val/Loss', loss_meter.avg, epoch)
     writer.add_scalar('Val/top3', top3.accuracy, epoch)
+    writer.add_scalar('Val/Acc', acc, epoch)
 
-    return top3.accuracy, loss_avg_epoch, writer
+    return top3.accuracy, loss_avg_epoch, acc, writer
 
 
 def test(ofname, pfname, args, test_dset,
@@ -257,16 +269,18 @@ def test(ofname, pfname, args, test_dset,
         with torch.no_grad():
             end = time.time()
             index = 0
-            for i, (input, _) in enumerate(test_loader):
+            for i, input in enumerate(test_loader):
                 # compute output
                 input = input.cuda()
-                # TODO: TTAに変える
                 output = model(input)
                 # print('input.size(): ', input.size())
                 # preds_with = predictor.predict_images(input)
 
                 res = torch.exp(output).topk(num_output_labels, dim=1)[1].cpu().numpy().tolist()
                 # measure elapsed time
+
+                if i % 10 == 0:
+                    print(res)
                 batch_time.update(time.time() - end)
                 end = time.time()
             
@@ -280,8 +294,8 @@ def test(ofname, pfname, args, test_dset,
                     ofd.write(result)
                     index += 1
 
-                if i > 10: # TODO: debug
-                    break
+                # if i > 100: # TODO: debug
+                #     break
                     
             
             print('TEST: [{epoch}]\t'
@@ -292,7 +306,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
     if args.evaluate:
         validate(val_loader, model, criterion)
     else:
-        model, optimizer, lr_scheduler, args, best_top3 = load_checkpoint(model, optimizer, lr_scheduler, args, resume=args.resume, ckpt=args.ckpt)
+        model, optimizer, lr_scheduler, args, best_top3, best_acc = load_checkpoint(model, optimizer, lr_scheduler, args, resume=args.resume, ckpt=args.ckpt)
         wut = None
         writer = writer
         if args.debug_weights:
@@ -304,11 +318,12 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                 wut.track(model)
                 print('wut: ', wut)
 
-            top3, val_loss, writer = validate(val_loader, model, criterion, epoch, writer)
+            top3, val_loss, acc,writer = validate(val_loader, model, criterion, epoch, writer)
 
-            is_best = top3 > best_top3
+            is_best = acc > best_acc
+            print('acc: {:.4f}, best_acc {:.4f}'.format(acc, best_acc))
             print('is_best: ', is_best)
-            best_top3 = max(top3, best_top3)
+            best_acc = max(acc, best_acc)
             mkdir_exp_dir(args)
             if is_best:
                 print("BEST at epoch: ", epoch)
@@ -317,11 +332,11 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                     'arch': args.arch,
                     'state_dict': model.state_dict(),
                     'best_top3': best_top3,
+                    'best_acc': best_acc,
                     'optimizer' : optimizer.state_dict(),
                     # 'scheduler' : scheduler.state_dict(),
-                    }, is_best, args, epoch, best_top3)
+                    }, is_best, args, epoch, best_acc)
             test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
-
             adjust_learning_rate(optimizer, lr_scheduler, epoch, val_loss, args)
 
             if epoch < 2:

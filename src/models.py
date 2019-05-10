@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as weight_init
 import pretrainedmodels
+from torchvision.models import resnet18, resnet152
 
 
 class FCWithLogSigmoid(nn.Module):
@@ -25,18 +26,30 @@ def create_model(args):
             model = models.__dict__[args.arch](pretrained='imagenet')
         elif args.arch == 'resnext10132x4d':
             model = models.__dict__["resnext101_32x4d"](pretrained='imagenet')
-
+        elif args.arch == 'resnet18':
+            model = resnet18(pretrained=args.pretrained)
+        elif args.arch == 'resnet152':
+            model = resnet152(pretrained=args.pretrained)
     else:
         print('=> From schratch model `{}`'.format(args.arch))
-        model = models.__dict__[arch]()
+        if args.arch == 'resnet18':
+            model = resnet18(pretrained=args.pretrained)
+        else:
+            model = models.__dict__[arch]()
 
     if args.resolution > 1:
-        model.avg_pool = nn.AdaptiveAvgPool2d(1)
+        if args.arch == 'resnet18' or args.arch == 'resnet152': # Torchvision
+            model.avgpool = nn.AdaptiveAvgPool2d(1)
+        else:
+            model.avg_pool = nn.AdaptiveAvgPool2d(1)
     
     if args.loss_type == 'BCEWithLogitsLoss':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)
     if args.loss_type == 'CrossEntropyLoss':
-        model.last_linear = nn.Linear(args.fv_size, args.num_labels)
+        if args.arch == 'resnet18' or args.arch == 'resnet152':
+            model.fc = nn.Linear(args.fv_size, args.num_labels)
+        else:
+            model.last_linear = nn.Linear(args.fv_size, args.num_labels)
 
     # if args.arch.startswith('alexnet') or args.arch.starswith('vgg'):
     #     model.features = nn.DataParallel(model.features).cuda()

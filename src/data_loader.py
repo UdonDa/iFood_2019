@@ -54,7 +54,7 @@ def create_transforms(args):
                     transforms.RandomHorizontalFlip(),
                     transforms.TenCrop(args.nw_input_size),
                     transforms.Lambda(lambda crops: crops[np.random.randint(len(crops))]),
-                    # transforms.ColorJitter(hue=.05, saturation=.05),
+                    transforms.ColorJitter(hue=.05, saturation=.05),
                     transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
@@ -98,6 +98,7 @@ class FoodDataset(data.Dataset):
             self.test = test
 
         def __getitem__(self, index):
+            label = torch.randn(3)
             if not self.test:
                 img, label = self.img_name[index], self.label[index]
                 img = '{}/{}'.format(self.root, img)
@@ -117,6 +118,24 @@ class FoodDataset(data.Dataset):
             
             # return img, zeros
             return img, label
+
+        def __len__(self):
+            return len(self.img_name)
+
+class FoodDatasetTest(data.Dataset):
+        def __init__(self, root, csv_path, num_labels=250, transform=None, target_transform=None, test=False):
+            self.root = root
+            self.img_name = sorted(glob('{}/*.jpg'.format(root)))
+            self.num_labels = num_labels
+            self.transform = transform
+
+        def __getitem__(self, index):
+            img = self.img_name[index]
+            # Make img
+            img = pil_loader(img)
+            img = self.transform(img)
+            
+            return img
 
         def __len__(self):
             return len(self.img_name)
@@ -143,7 +162,7 @@ def get_data_loader(args):
     train_tform, val_tform = create_transforms(args)
     train_dset = FoodDataset(args.train_dir, args.train_labels_csv, args.num_labels, transform=train_tform)
     val_dset = FoodDataset(args.val_dir, args.val_labels_csv, args.num_labels, transform=val_tform)
-    test_dset = FoodDataset(args.test_dir, None, args.num_labels, transform=val_tform, test=True)
+    test_dset = FoodDatasetTest(args.test_dir, None, args.num_labels, transform=val_tform, test=True)
 
     train_loader = torch.utils.data.DataLoader(train_dset,
                                            batch_size=args.batch_size,
