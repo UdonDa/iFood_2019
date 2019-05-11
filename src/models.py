@@ -17,7 +17,7 @@ class FCWithLogSigmoid(nn.Module):
 def create_model(args):
     models = pretrainedmodels
     if args.pretrained:
-        print('=> Using pre-trained model `{}`'.format(args.arch))
+        print('=> Using pre-trained model `{}` - {}'.format(args.arch, args.resolution))
 
         if args.arch == 'pnasnet5large' or args.arch == 'nasnetalarge':
             model = models.__dict__[args.arch](pretrained='imagenet+background')

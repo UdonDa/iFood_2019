@@ -58,7 +58,7 @@ def get_parameters():
     args.test_overfit = False
     args.num_labels = 251
     
-    args.num_workers = 32
+    args.num_workers = 8
 
     args.pretrained = True
     args.resume = False
@@ -77,17 +77,17 @@ def get_parameters():
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
     # args.arch = 'polynet'
-    args.arch = 'inceptionresnetv2'
+    # args.arch = 'inceptionresnetv2'
     # args.arch = 'inceptionv4'
 
     # Torchvisions
     # args.arch = 'resnet18'
-    # args.arch = 'resnet152'
+    args.arch = 'resnet152'
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    args.optimizer = 'Sgd'
-    # args.optimizer = 'AdaBound'
+    # args.optimizer = 'Sgd'
+    args.optimizer = 'AdaBound'
 
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
@@ -134,11 +134,11 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 384
                 args.nw_input_size = 331
-                args.batch_size = 168
+                args.batch_size = 160
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 84
+                args.batch_size = 80
         else:
             if args.resolution == 1:
                 args.image_min_size = 384
@@ -161,11 +161,11 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 384
                 args.nw_input_size = 331
-                args.batch_size = 200
+                args.batch_size = 100
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 200
+                args.batch_size = 100
         else:
             if args.resolution == 1:
                 args.image_min_size = 384
@@ -213,11 +213,11 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 256
                 args.nw_input_size = 224
-                args.batch_size = 200
+                args.batch_size = 100
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 200
+                args.batch_size = 100
         else:
             if args.resolution == 1:
                 args.image_min_size = 256
@@ -242,11 +242,11 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 378
                 args.nw_input_size = 331
-                args.batch_size = 200
+                args.batch_size = 160
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 200
+                args.batch_size = 160
         else:
             if args.resolution == 1:
                 args.image_min_size = 378
@@ -273,11 +273,11 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 378
                 args.nw_input_size = 331
-                args.batch_size = 200
+                args.batch_size = 160
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 200
+                args.batch_size = 160
         else:
             if args.resolution == 1:
                 args.image_min_size = 339
