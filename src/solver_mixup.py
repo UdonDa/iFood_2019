@@ -11,6 +11,7 @@ import os
 import json
 import tensorboardX as tbx
 import datetime
+import numpy as np
 
 from models import create_model, WeightUpdateTracker
 from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK, MyPredictor
@@ -19,7 +20,23 @@ from parameter import mkdir_exp_dir
 from logger import Logger
 
 
+def mixup_data(x, y, alpha=1.0):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
 
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).cuda()
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    """mixup criterion"""
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
     
 def get_model(args):
     model = create_model(args)
@@ -136,20 +153,23 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     start_time = time.time()
 
     for i, (input, target) in enumerate(train_loader):
-        target, input = target.cuda().long(), input.cuda()
+        input, target = input.cuda(), target.cuda().long()
 
-        # torchvision.utils.save_image(input, './sample.png', normalize=True)
+        # Mixup
+        input, target_a, target_b, lam = mixup_data(input, target, args.alpha)
 
         output = model(input)
 
-        loss = criterion(output, target)
+        # loss = criterion(output, target)
+        loss = mixup_criterion(criterion, output, target_a, target_b, lam)
 
         loss_meter.update(loss.item(), input.size(0))
         top3.update(target, torch.exp(output))
 
         _, predicted = torch.max(output, 1)
         total += target.size(0)
-        correct += (predicted == target).sum().item()
+        correct += (lam * predicted.eq(targets_a.data).cpu().sum().float()
+                    + (1 - lam) * predicted.eq(targets_b.data).cpu().sum().float())
         acc = correct / total
 
         # compute gradient and do SGD step
@@ -344,6 +364,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                 pfname_ = '{}/param.json'.format(args.exp_dir)
                 with open(pfname_, "w") as pfd:
                     json.dump(vars(args), pfd, sort_keys=True, indent=4)
+
 
 def start_train(args):
     model = get_model(args)

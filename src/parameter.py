@@ -70,6 +70,7 @@ def get_parameters():
 
     """mixup"""
     args.mixup = True
+    args.alpha = 1.
 
     """model architecture"""
     # args.all_parameter_freeze = False
@@ -111,7 +112,7 @@ def get_parameters():
     args.evaluate = False
     args.epochs = 100
     
-    args.output_dir += '/reso{}-{}-ParamFreeze-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze)
+    args.output_dir += '/reso{}-{}-ParamFreeze-{}-mixup-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze, args.mixup)
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
