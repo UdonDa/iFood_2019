@@ -66,6 +66,8 @@ def freeeze_parameter(model, args):
         print('=> Freeze all parameters')
         for param in model.parameters():
             param.requires_grad = False
+    else:
+        print("=> Train all layers.")
     return model
 
 def count_parameters(model):

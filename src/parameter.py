@@ -47,7 +47,7 @@ def get_parameters():
     args.data_dir = '/export/ssd/dataset/iFood2019'
     # args.data_dir = '/Users/daichi/Downloads/ifood'
 
-    args.output_dir = '../results'
+    args.output_dir = '../results2'
 
     args.train_dir = args.data_dir + os.sep + 'train_set'
     args.val_dir = args.data_dir + os.sep + 'val_set'
@@ -72,7 +72,9 @@ def get_parameters():
     args.mixup = True
 
     """model architecture"""
+    # args.all_parameter_freeze = False
     args.all_parameter_freeze = True
+
 
     # args.resolution = 1
     args.resolution = 2
@@ -108,6 +110,8 @@ def get_parameters():
 
     args.evaluate = False
     args.epochs = 100
+    
+    args.output_dir += '/reso{}-{}-ParamFreeze-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze)
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
@@ -162,6 +166,7 @@ def get_parameters():
                 args.nw_input_size = 448
                 if num_of_gpus == 4:
                     args.batch_size = 16
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'nasnetalarge':
         args.fv_size = 4032
@@ -189,6 +194,7 @@ def get_parameters():
                 args.nw_input_size = 448
                 if num_of_gpus == 4:
                     args.batch_size = 12
+            args.val_batch_size = args.batch_size
     
     elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
@@ -218,6 +224,7 @@ def get_parameters():
                 args.nw_input_size = 448
                 if num_of_gpus == 4:
                     args.batch_size = 32
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'senet154':
         args.fv_size = 2048
@@ -249,6 +256,7 @@ def get_parameters():
                     args.batch_size = 20
                 elif num_of_gpus == 10:
                     args.batch_size = 44
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'polynet':
         args.fv_size = 2048
@@ -282,6 +290,7 @@ def get_parameters():
                     args.batch_size = 20
                 elif num_of_gpus == 10:
                     args.batch_size = 44
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'inceptionresnetv2':
         args.fv_size = 1536
@@ -315,6 +324,7 @@ def get_parameters():
                     args.batch_size = 20
                 elif num_of_gpus == 10:
                     args.batch_size = 44
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'inceptionv4':
         args.fv_size = 1536
@@ -348,6 +358,7 @@ def get_parameters():
                     args.batch_size = 20
                 elif num_of_gpus == 10:
                     args.batch_size = 44
+            args.val_batch_size = args.batch_size
 
     elif args.arch == 'resnet18':
         args.fv_size = 512
@@ -391,6 +402,7 @@ def get_parameters():
                 args.batch_size = 20
             elif num_of_gpus == 10:
                 args.batch_size = 44
+            args.val_batch_size = args.batch_size
 
     
     args.pretrain_dset_mean = args.imagenet_mean
