@@ -32,6 +32,7 @@ def mkdir_exp_dir(args):
     p['lr_scheduler'] = args.lr_scheduler
     p['loss_type'] = args.loss_type
     p['epoch'] = args.epochs
+    p['all_parameter_freeze'] = args.all_parameter_freeze
 
     for key, val in p.items():
         log_file.write(key + ':' + str(val) + '\n')
@@ -65,8 +66,10 @@ def get_parameters():
     args.small = 1e-12
 
     """model architecture"""
-    args.resolution = 1
-    # args.resolution = 2
+    args.all_parameter_freeze = True
+
+    # args.resolution = 1
+    args.resolution = 2
 
     # Pretrainedmodels
     # args.arch = 'pnasnet5large'
@@ -74,8 +77,8 @@ def get_parameters():
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
     # args.arch = 'polynet'
-    # args.arch = 'inceptionresnetv2'
-    args.arch = 'inceptionv4'
+    args.arch = 'inceptionresnetv2'
+    # args.arch = 'inceptionv4'
 
     # Torchvisions
     # args.arch = 'resnet18'
@@ -94,17 +97,16 @@ def get_parameters():
     # args.loss_type = 'BCEWithLogitsLoss'
     args.loss_type = 'CrossEntropyLoss'
 
-
     args.earlystopping_patience = 1          # early stopping patience is the number of epochs with no improvement after which training will be stopped
     args.earlystopping_min_delta = 1e-5      # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement
 
     args.evaluate = False
-    args.epochs = 200
+    args.epochs = 100
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
-    args.random_erasing_sh = 0.3
-    args.random_erasing_r1 = 0.2
+    args.random_erasing_sh = 0.4
+    args.random_erasing_r1 = 0.3
 
     args.output_id = get_output_fname(args)
     args.exp_dir = '{}/{}'.format(args.output_dir, args.output_id)
@@ -128,132 +130,202 @@ def get_parameters():
         args.fv_size = 4320
         args.imagenet_mean = [0.5, 0.5, 0.5]
         args.imagenet_std = [0.5, 0.5, 0.5]
-        if args.resolution == 1:
-            args.image_min_size = 384
-            args.nw_input_size = 331
-            if num_of_gpus == 4:
-                args.batch_size = 32
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 16
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 384
+                args.nw_input_size = 331
+                args.batch_size = 168
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 84
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 384
+                args.nw_input_size = 331
+                if num_of_gpus == 2:
+                    args.batch_size = 16
+                if num_of_gpus == 4:
+                    args.batch_size = 32
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 16
 
     elif args.arch == 'nasnetalarge':
         args.fv_size = 4032
         args.imagenet_mean = [0.5, 0.5, 0.5]
         args.imagenet_std = [0.5, 0.5, 0.5]
-        if args.resolution == 1:
-            args.image_min_size = 384
-            args.nw_input_size = 331
-            if num_of_gpus == 4:
-                args.batch_size = 28
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 12
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 384
+                args.nw_input_size = 331
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 384
+                args.nw_input_size = 331
+                if num_of_gpus == 4:
+                    args.batch_size = 28
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 12
     
     elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]
-        if args.resolution == 1:
-            args.image_min_size = 256
-            args.nw_input_size = 224
-            if num_of_gpus == 2:
-                args.batch_size = 20
-            if num_of_gpus == 4:
-                args.batch_size = 100
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 32
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 256
+                args.nw_input_size = 224
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 256
+                args.nw_input_size = 224
+                if num_of_gpus == 2:
+                    args.batch_size = 20
+                elif num_of_gpus == 4:
+                    args.batch_size = 100
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 32
 
     elif args.arch == 'senet154':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]
-        if args.resolution == 1:
-            args.image_min_size = 256
-            args.nw_input_size = 224
-            if num_of_gpus == 4:
-                args.batch_size = 80
-            if num_of_gpus == 10:
-                args.batch_size = 128
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 20
-            if num_of_gpus == 10:
-                args.batch_size = 44
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 256
+                args.nw_input_size = 224
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 256
+                args.nw_input_size = 224
+                if num_of_gpus == 4:
+                    args.batch_size = 80
+                elif num_of_gpus == 10:
+                    args.batch_size = 128
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 20
+                elif num_of_gpus == 10:
+                    args.batch_size = 44
 
     elif args.arch == 'polynet':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
         args.imagenet_std = [0.229, 0.224, 0.225]
-        if args.resolution == 1:
-            args.image_min_size = 378
-            args.nw_input_size = 331
-            if num_of_gpus == 2:
-                args.batch_size = 20
-            if num_of_gpus == 4:
-                args.batch_size = 80
-            if num_of_gpus == 10:
-                args.batch_size = 128
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 20
-            if num_of_gpus == 10:
-                args.batch_size = 44
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 378
+                args.nw_input_size = 331
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 378
+                args.nw_input_size = 331
+                if num_of_gpus == 2:
+                    args.batch_size = 20
+                elif num_of_gpus == 4:
+                    args.batch_size = 80
+                elif num_of_gpus == 10:
+                    args.batch_size = 128
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 20
+                elif num_of_gpus == 10:
+                    args.batch_size = 44
 
     elif args.arch == 'inceptionresnetv2':
         args.fv_size = 1536
         args.imagenet_mean = [0.5, 0.5, 0.5]
         args.imagenet_std = [0.5, 0.5, 0.5]
-        if args.resolution == 1:
-            args.image_min_size = 339
-            args.nw_input_size = 299
-            if num_of_gpus == 2:
-                args.batch_size = 64
-            if num_of_gpus == 4:
-                args.batch_size = 80
-            if num_of_gpus == 10:
-                args.batch_size = 128
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 20
-            if num_of_gpus == 10:
-                args.batch_size = 44
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 378
+                args.nw_input_size = 331
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 339
+                args.nw_input_size = 299
+                if num_of_gpus == 2:
+                    args.batch_size = 64
+                elif num_of_gpus == 4:
+                    args.batch_size = 80
+                elif num_of_gpus == 10:
+                    args.batch_size = 128
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 20
+                elif num_of_gpus == 10:
+                    args.batch_size = 44
 
     elif args.arch == 'inceptionv4':
         args.fv_size = 1536
         args.imagenet_mean = [0.5, 0.5, 0.5]
         args.imagenet_std = [0.5, 0.5, 0.5]
-        if args.resolution == 1:
-            args.image_min_size = 339
-            args.nw_input_size = 299
-            if num_of_gpus == 2:
-                args.batch_size = 90
-            if num_of_gpus == 4:
-                args.batch_size = 80
-            if num_of_gpus == 10:
-                args.batch_size = 128
-        if args.resolution == 2:
-            args.image_min_size = 498
-            args.nw_input_size = 448
-            if num_of_gpus == 4:
-                args.batch_size = 20
-            if num_of_gpus == 10:
-                args.batch_size = 44
-
-                
+        if args.all_parameter_freeze:
+            if args.resolution == 1:
+                args.image_min_size = 378
+                args.nw_input_size = 331
+                args.batch_size = 200
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                args.batch_size = 200
+        else:
+            if args.resolution == 1:
+                args.image_min_size = 339
+                args.nw_input_size = 299
+                if num_of_gpus == 2:
+                    args.batch_size = 90
+                elif num_of_gpus == 4:
+                    args.batch_size = 80
+                elif num_of_gpus == 10:
+                    args.batch_size = 128
+            elif args.resolution == 2:
+                args.image_min_size = 498
+                args.nw_input_size = 448
+                if num_of_gpus == 4:
+                    args.batch_size = 20
+                elif num_of_gpus == 10:
+                    args.batch_size = 44
 
     elif args.arch == 'resnet18':
         args.fv_size = 512
@@ -266,14 +338,14 @@ def get_parameters():
                 args.batch_size = 300
             elif num_of_gpus == 4:
                 args.batch_size = 80
-        if args.resolution == 2:
+        elif args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
             if num_of_gpus == 2:
                 args.batch_size = 100
-            if num_of_gpus == 4:
+            elif num_of_gpus == 4:
                 args.batch_size = 20
-            if num_of_gpus == 10:
+            elif num_of_gpus == 10:
                 args.batch_size = 44
     elif args.arch == 'resnet152':
         args.fv_size = 2048
@@ -286,14 +358,14 @@ def get_parameters():
                 args.batch_size = 300
             elif num_of_gpus == 4:
                 args.batch_size = 80
-        if args.resolution == 2:
+        elif args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448
             if num_of_gpus == 2:
                 args.batch_size = 100
-            if num_of_gpus == 4:
+            elif num_of_gpus == 4:
                 args.batch_size = 20
-            if num_of_gpus == 10:
+            elif num_of_gpus == 10:
                 args.batch_size = 44
 
     

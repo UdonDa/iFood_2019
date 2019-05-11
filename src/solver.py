@@ -38,35 +38,34 @@ def get_criterion(args):
 
 def get_optimizer(args, model):
     optimizer = None
-    print('Use optimizer: ', args.optimizer)
+    print('=> Use optimizer: ', args.optimizer)
     if args.optimizer == 'Adam':
-        optimizer = torch.optim.Adam(
-                        model.parameters(),
-                        amsgrad=args.amsgrad,
-                        lr=args.lr,
-                        betas=(args.beta1, args.beta2),
-                        eps=args.small,
-                        weight_decay=args.weight_decay
-                        )
+        if args.all_parameter_freeze:
+            if args.arch == 'resnet18' or args.arch == 'resnet152':
+                optimizer = torch.optim.Adam(model.module.fc.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
+            else:
+                optimizer = torch.optim.Adam(model.module.last_linear.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
+        else:
+            optimizer = torch.optim.Adam(model.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
 
     elif args.optimizer == 'Sgd':
-        optimizer = torch.optim.SGD(
-                        model.parameters(),
-                        lr=args.lr,
-                        momentum=args.momentum,
-                        weight_decay=args.weight_decay,
-                        nesterov=args.nesterov
-        )
+        if args.all_parameter_freeze:
+            if args.arch == 'resnet18' or args.arch == 'resnet152':
+                optimizer = torch.optim.SGD(model.module.fc.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
+            else:
+                optimizer = torch.optim.SGD(model.module.last_linear.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
+        else:
+            optimizer = torch.optim.SGD(model.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
+
     elif args.optimizer == 'AdaBound':
         from adabound_optim import AdaBound
-        optimizer = AdaBound(
-                        model.parameters(),
-                        lr=args.lr,
-                        betas=(args.beta1, args.beta2),
-                        final_lr=args.final_lr,
-                        gamma=args.gamma
-        )
-
+        if args.all_parameter_freeze:
+            if args.arch == 'resnet18' or args.arch == 'resnet152':
+                optimizer = AdaBound(model.module.fc.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
+            else:
+                optimizer = AdaBound(model.module.last_linear.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
+        else:
+            optimizer = AdaBound(model.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
     return optimizer
 
 

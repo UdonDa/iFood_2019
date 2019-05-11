@@ -43,6 +43,9 @@ def create_model(args):
         else:
             model.avg_pool = nn.AdaptiveAvgPool2d(1)
     
+    # Freeze parameter
+    model = freeeze_parameter(model, args)
+    
     if args.loss_type == 'BCEWithLogitsLoss':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)
     if args.loss_type == 'CrossEntropyLoss':
@@ -55,6 +58,14 @@ def create_model(args):
     #     model.features = nn.DataParallel(model.features).cuda()
     # else:
     model = nn.DataParallel(model).cuda()
+    return model
+
+
+def freeeze_parameter(model, args):
+    if args.all_parameter_freeze:
+        print('=> Freeze all parameters')
+        for param in model.parameters():
+            param.requires_grad = False
     return model
 
 def count_parameters(model):
