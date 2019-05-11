@@ -33,6 +33,8 @@ def mkdir_exp_dir(args):
     p['loss_type'] = args.loss_type
     p['epoch'] = args.epochs
     p['all_parameter_freeze'] = args.all_parameter_freeze
+    p['mixup'] = args.mixup
+    p['tta'] = args.tta
 
     for key, val in p.items():
         log_file.write(key + ':' + str(val) + '\n')
@@ -65,6 +67,10 @@ def get_parameters():
     args.start_epoch = 1
     args.small = 1e-12
 
+
+    """mixup"""
+    args.mixup = True
+
     """model architecture"""
     args.all_parameter_freeze = True
 
@@ -72,7 +78,7 @@ def get_parameters():
     args.resolution = 2
 
     # Pretrainedmodels
-    # args.arch = 'pnasnet5large'
+    args.arch = 'pnasnet5large'
     # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
@@ -82,12 +88,12 @@ def get_parameters():
 
     # Torchvisions
     # args.arch = 'resnet18'
-    args.arch = 'resnet152'
+    # args.arch = 'resnet152'
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    # args.optimizer = 'Sgd'
-    args.optimizer = 'AdaBound'
+    args.optimizer = 'Sgd'
+    # args.optimizer = 'AdaBound'
 
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
@@ -107,6 +113,8 @@ def get_parameters():
     args.random_erasing_p = 0.5
     args.random_erasing_sh = 0.4
     args.random_erasing_r1 = 0.3
+
+    args.tta = True
 
     args.output_id = get_output_fname(args)
     args.exp_dir = '{}/{}'.format(args.output_dir, args.output_id)
@@ -135,10 +143,12 @@ def get_parameters():
                 args.image_min_size = 384
                 args.nw_input_size = 331
                 args.batch_size = 160
+                args.val_batch_size = 16
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 80
+                args.val_batch_size = 8
         else:
             if args.resolution == 1:
                 args.image_min_size = 384
@@ -162,10 +172,12 @@ def get_parameters():
                 args.image_min_size = 384
                 args.nw_input_size = 331
                 args.batch_size = 100
+                args.val_batch_size = 8
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 100
+                args.val_batch_size = 8
         else:
             if args.resolution == 1:
                 args.image_min_size = 384
@@ -186,11 +198,13 @@ def get_parameters():
             if args.resolution == 1:
                 args.image_min_size = 256
                 args.nw_input_size = 224
-                args.batch_size = 200
+                args.batch_size = 80
+                args.val_batch_size = 10
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
-                args.batch_size = 200
+                args.batch_size = 80
+                args.val_batch_size = 10
         else:
             if args.resolution == 1:
                 args.image_min_size = 256
@@ -214,10 +228,12 @@ def get_parameters():
                 args.image_min_size = 256
                 args.nw_input_size = 224
                 args.batch_size = 100
+                args.val_batch_size = 10
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 100
+                args.val_batch_size = 10
         else:
             if args.resolution == 1:
                 args.image_min_size = 256
@@ -243,10 +259,12 @@ def get_parameters():
                 args.image_min_size = 378
                 args.nw_input_size = 331
                 args.batch_size = 160
+                args.val_batch_size = 10
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 160
+                args.val_batch_size = 10
         else:
             if args.resolution == 1:
                 args.image_min_size = 378
@@ -274,10 +292,12 @@ def get_parameters():
                 args.image_min_size = 378
                 args.nw_input_size = 331
                 args.batch_size = 160
+                args.val_batch_size = 10
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 160
+                args.val_batch_size = 10
         else:
             if args.resolution == 1:
                 args.image_min_size = 339
@@ -305,10 +325,12 @@ def get_parameters():
                 args.image_min_size = 378
                 args.nw_input_size = 331
                 args.batch_size = 200
+                args.val_batch_size = 10
             elif args.resolution == 2:
                 args.image_min_size = 498
                 args.nw_input_size = 448
                 args.batch_size = 200
+                args.val_batch_size = 10
         else:
             if args.resolution == 1:
                 args.image_min_size = 339
@@ -356,8 +378,10 @@ def get_parameters():
             args.nw_input_size = 224
             if num_of_gpus == 2:
                 args.batch_size = 300
+                args.val_batch_size = 10
             elif num_of_gpus == 4:
                 args.batch_size = 80
+                args.val_batch_size = 10
         elif args.resolution == 2:
             args.image_min_size = 498
             args.nw_input_size = 448

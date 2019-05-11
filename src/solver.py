@@ -166,7 +166,9 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
                 'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
                 'Top-3 {top3.accuracy:.3f}\t Acc {acc:.4f}'.format(
                 epoch, i, len(train_loader), loss_meter=loss_meter, top3=top3, acc=acc))
-            # break # TODO: Debug
+
+        if i % 20 == 0:
+            break # TODO: Debug
             
             
     print('TRAIN: [{epoch}]\t'
@@ -291,7 +293,7 @@ def test(ofname, pfname, args, test_dset,
                     ofd.write(result)
                     index += 1
 
-                # if i > 100: # TODO: debug
+                # if i > 10: # TODO: debug
                 #     break
                     
             

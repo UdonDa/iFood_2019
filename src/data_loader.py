@@ -133,7 +133,7 @@ class FoodDatasetTest(data.Dataset):
             img = self.img_name[index]
             # Make img
             img = pil_loader(img)
-            img = self.val_tform(img)
+            img = self.transform(img)
             
             return img
 
@@ -171,14 +171,14 @@ def get_data_loader(args):
                                         #    pin_memory=True,
                                           )
     val_loader = torch.utils.data.DataLoader(val_dset,
-                                         batch_size=args.batch_size,
+                                         batch_size=args.val_batch_size,
                                          shuffle=False,
                                          num_workers=args.num_workers,
                                         #  pin_memory=True
                                         )
 
     test_loader = torch.utils.data.DataLoader(test_dset,
-                                         batch_size=args.batch_size,
+                                         batch_size=args.val_batch_size,
                                          shuffle=False,
                                          num_workers=args.num_workers,
                                         #  pin_memory=True
