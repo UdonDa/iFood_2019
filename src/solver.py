@@ -200,8 +200,12 @@ def validate(val_loader, model, criterion, epoch, writer):
         for i, (input, target) in enumerate(val_loader):
             input, target = input.cuda(), target.cuda().long()
 
-            # compute output
-            output = model(input)
+            # output = model(input) # When you do not use Ten crops.
+
+            bs, ncrops, c, h, w = input.size() # When you use Ten crops.
+            output = model(input.view(-1, c, h, w))
+            output = output.view(bs, ncrops, -1).mean(1)
+
             loss = criterion(output, target)
 
             # compute accuracy
@@ -250,18 +254,14 @@ def test(ofname, pfname, args, test_dset,
     
 #     checkpoint = torch.load(best_model_ckpt)
 #     model.load_state_dict(checkpoint['state_dict'])
-
-    # predictor = MyPredictor(model, args.edata_json)
     
     batch_time = AverageMeter()
     res = OrderedDict()
 
-    # switch to evaluate mode
     model.eval()
     
     res = OrderedDict()
 
-    # ofname_ = "%s%s%03d_%s" % (os.path.dirname(ofname), os.sep, epoch, os.path.basename(ofname))
     ofname_ = '{}/{}.csv'.format(args.sub_dir, epoch)
     with open(ofname_, "w") as ofd:
         ofd.write("img_name,label\n")
@@ -269,17 +269,15 @@ def test(ofname, pfname, args, test_dset,
             end = time.time()
             index = 0
             for i, input in enumerate(test_loader):
-                # compute output
                 input = input.cuda()
-                output = model(input)
-                # print('input.size(): ', input.size())
-                # preds_with = predictor.predict_images(input)
+                # output = model(input) # When you do not use Ten crops.
+
+                bs, ncrops, c, h, w = input.size() # When you use Ten crops.
+                output = model(input.view(-1, c, h, w))
+                output = output.view(bs, ncrops, -1).mean(1)
 
                 res = torch.exp(output).topk(num_output_labels, dim=1)[1].cpu().numpy().tolist()
-                # measure elapsed time
 
-                if i % 10 == 0:
-                    print(res)
                 batch_time.update(time.time() - end)
                 end = time.time()
             

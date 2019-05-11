@@ -59,15 +59,15 @@ def create_transforms(args):
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    # RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
+                    RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
                     ])
 
-    val_tform = transforms.Compose([transforms.Resize(args.image_min_size),
-                                    transforms.CenterCrop(args.nw_input_size),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize(mean=args.pretrain_dset_mean,
-                                                         std=args.pretrain_dset_std)
-                                   ])
+    val_tform = transforms.Compose([
+                    transforms.Resize(args.image_min_size),
+                    transforms.TenCrop(args.nw_input_size), # TTA: TenCrops
+                    transforms.Lambda(lambda crops: torch.stack([
+                        transforms.Normalize(mean=args.pretrain_dset_mean,std=args.pretrain_dset_std)(transforms.ToTensor()(crop)) for crop in crops])),
+                    ])
     return (train_tform, val_tform)
 
 
@@ -105,7 +105,6 @@ class FoodDataset(data.Dataset):
             else:
                 img = self.img_name[index]
                 label = torch.Tensor(0)
-                # print('img path in test_dst: ', img)
             
             # # Make label # TODO: For without cross entropy
             # zeros = torch.zeros(self.num_labels)
@@ -123,17 +122,18 @@ class FoodDataset(data.Dataset):
             return len(self.img_name)
 
 class FoodDatasetTest(data.Dataset):
-        def __init__(self, root, csv_path, num_labels=250, transform=None, target_transform=None, test=False):
+        def __init__(self, root=None, num_labels=251, transform=None):
             self.root = root
             self.img_name = sorted(glob('{}/*.jpg'.format(root)))
             self.num_labels = num_labels
+
             self.transform = transform
 
         def __getitem__(self, index):
             img = self.img_name[index]
             # Make img
             img = pil_loader(img)
-            img = self.transform(img)
+            img = self.val_tform(img)
             
             return img
 
@@ -162,7 +162,7 @@ def get_data_loader(args):
     train_tform, val_tform = create_transforms(args)
     train_dset = FoodDataset(args.train_dir, args.train_labels_csv, args.num_labels, transform=train_tform)
     val_dset = FoodDataset(args.val_dir, args.val_labels_csv, args.num_labels, transform=val_tform)
-    test_dset = FoodDatasetTest(args.test_dir, None, args.num_labels, transform=val_tform, test=True)
+    test_dset = FoodDatasetTest(root=args.test_dir, num_labels=args.num_labels, transform=val_tform)
 
     train_loader = torch.utils.data.DataLoader(train_dset,
                                            batch_size=args.batch_size,
