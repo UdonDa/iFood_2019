@@ -28,34 +28,14 @@ def mkdir_exp_dir(args):
     p['arch'] = args.arch
     p['image_min_size'] = args.image_min_size
     p['nw_input_size'] = args.nw_input_size
+    p['lr'] = args.lr
+    p['lr_scheduler'] = args.lr_scheduler
     p['loss_type'] = args.loss_type
     p['epoch'] = args.epochs
     p['all_parameter_freeze'] = args.all_parameter_freeze
     p['mixup'] = args.mixup
     p['tta'] = args.tta
     p['random_erasing']= args.random_erasing
-
-    p['lr'] = args.lr
-    p['lr_scheduler'] = args.lr_scheduler
-
-    if args.optimizer == 'Adam':
-        p['lr'] = args.lr
-        p['beta1'] = args.beta1
-        p['beta2'] = args.beta2
-        p['amsgrad'] = args.amsgrad
-        p['weight_decay'] = args.weight_decay
-    elif args.optimizer == 'Sgd':
-        p['lr'] = args.lr
-        p['momentum'] = args.momentum
-        p['weight_decay'] = args.weight_decay
-        p['nesterov'] = args.nesterov
-    elif args.optimizer == 'AdaBound':
-        p['lr'] = args.lr
-        p['beta1'] = args.beta1
-        p['beta2'] = args.beta2
-        p['final_lr'] = args.final_lr
-        p['gamma'] = args.gamma
-
 
     for key, val in p.items():
         log_file.write(key + ':' + str(val) + '\n')
@@ -79,24 +59,15 @@ def get_parameters():
 
     args.debug_weights = False
     args.test_overfit = False
-    args.num_labels = 251
+    args.num_labels = 100
     
     args.num_workers = 8
 
     args.pretrained = True
+    args.resume = False
     args.start_epoch = 1
     args.small = 1e-12
 
-    """ Resume """
-    args.resume = False
-    args.pretrained_model_path = None
-    # args.resume = True # Pretrained model
-    # # RESNEXT
-    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101755_resnext10132x4d/ckpt/best-19-0.6727-resnext10132x4d.pth.tar'
-    # # # NASNET
-    # # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_nasnetalarge/ckpt/best-8-0.6174-nasnetalarge.pth.tar'
-    # # # SENET
-    # # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_senet154/ckpt/best-7-0.6845-senet154.pth.tar'
 
     """mixup"""
     args.mixup = True
@@ -112,13 +83,13 @@ def get_parameters():
     args.resolution = 2
 
     # Pretrainedmodels
-    args.arch = 'pnasnet5large'
+    # args.arch = 'pnasnet5large'
     # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
     # args.arch = 'polynet'
     # args.arch = 'inceptionresnetv2'
-    # args.arch = 'inceptionv4'
+    args.arch = 'inceptionv4'
 
     # Torchvisions
     # args.arch = 'resnet18'
@@ -143,8 +114,7 @@ def get_parameters():
     args.evaluate = False
     args.epochs = 300
     
-    args.output_dir += '/reso{}-{}-ParamFreeze-{}-mixup-{}-randomErasing-{}-resume-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze, args.mixup, args.random_erasing, args.resume)
-
+    args.output_dir += '/reso{}-{}-ParamFreeze-{}-mixup-{}-randomErasing-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze, args.mixup, args.random_erasing)
 
     """Random Erasing"""
     args.random_erasing_p = 0.5
@@ -170,6 +140,7 @@ def get_parameters():
 
     
     num_of_gpus = torch.cuda.device_count()
+    args.batch_size = 8
     """Model Architecture"""
     if args.arch == 'pnasnet5large':
         args.fv_size = 4320
@@ -257,8 +228,6 @@ def get_parameters():
                 args.nw_input_size = 448
                 if num_of_gpus == 4:
                     args.batch_size = 32
-                if num_of_gpus == 10:
-                    args.batch_size = 64
             args.val_batch_size = args.batch_size
 
     elif args.arch == 'senet154':
@@ -451,7 +420,7 @@ def get_parameters():
         args.amsgrad = True
         args.weight_decay = 5e-4
     elif args.optimizer == 'Sgd':
-        args.lr = 0.001 # 0.1はダメ
+        args.lr = 0.1
         args.momentum = 0.9
         args.weight_decay = 5e-4
         args.nesterov = True
@@ -471,7 +440,7 @@ def get_parameters():
         args.T_max = args.epochs
         args.eta_min = 0
         args.last_epoch = -1
-
+    args.batch_size = 8
     return args
 
 

@@ -54,12 +54,12 @@ def create_transforms(args):
                     transforms.RandomHorizontalFlip(),
                     transforms.TenCrop(args.nw_input_size),
                     transforms.Lambda(lambda crops: crops[np.random.randint(len(crops))]),
-                    transforms.ColorJitter(hue=.05, saturation=.05),
-                    transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
+                    transforms.ColorJitter(brightness=.2,contrast=.2,saturation=.2,hue=0.02),
+                    transforms.RandomRotation(180, resample=PIL.Image.BILINEAR),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
+                    # RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
                     ])
 
     val_tform = transforms.Compose([

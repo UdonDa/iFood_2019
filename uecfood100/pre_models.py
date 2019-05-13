@@ -45,23 +45,20 @@ def create_model(args):
     
     # Freeze parameter
     model = freeeze_parameter(model, args)
-    classifier_layers = None
-
+    
     if args.loss_type == 'BCEWithLogitsLoss':
         model.last_linear = FCWithLogSigmoid(args.fv_size, args.num_labels)
     if args.loss_type == 'CrossEntropyLoss':
         if args.arch == 'resnet18' or args.arch == 'resnet152':
             model.fc = nn.Linear(args.fv_size, args.num_labels)
-            classifier_layers = ['fc.weight','fc.bias']
         else:
             model.last_linear = nn.Linear(args.fv_size, args.num_labels)
-            classifier_layers = ['last_linear.weight','last_linear.bias']
 
     # if args.arch.startswith('alexnet') or args.arch.starswith('vgg'):
     #     model.features = nn.DataParallel(model.features).cuda()
     # else:
     model = nn.DataParallel(model).cuda()
-    return model, classifier_layers
+    return model
 
 
 def freeeze_parameter(model, args):
