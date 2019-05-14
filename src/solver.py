@@ -38,6 +38,7 @@ def get_criterion(args):
 
 def get_optimizer(args, model, classifier_layers):
     optimizer = None
+    
     params_dict = dict(model.named_parameters())
     params = []
     for key, value in params_dict.items():
@@ -245,7 +246,7 @@ def validate(args, val_loader, model, criterion, epoch, writer):
                     top3=top3, acc=acc))
 
                 # if i % 10 == 0:
-                # break # TODO: Debug
+                #     break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
@@ -346,7 +347,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                     'best_top3': best_top3,
                     'best_acc': best_acc,
                     'optimizer' : optimizer.state_dict(),
-                    'scheduler' : scheduler.state_dict(),
+                    'scheduler' : lr_scheduler.state_dict(),
                     }, is_best, args, epoch, best_acc)
                 test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
             adjust_learning_rate(optimizer, lr_scheduler, epoch, val_loss, args)

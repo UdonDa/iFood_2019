@@ -39,8 +39,8 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
     
 def get_model(args):
-    model = create_model(args)
-    return model
+    model, clasify = create_model(args)
+    return model, clasify
 
 
 def get_criterion(args):
@@ -53,8 +53,18 @@ def get_criterion(args):
     return criterion
 
 
-def get_optimizer(args, model):
+def get_optimizer(args, model, classifier_layers):
     optimizer = None
+
+    params_dict = dict(model.named_parameters())
+    params = []
+    for key, value in params_dict.items():
+        if key in classifier_layers:
+            params += [{'params':[value],'lr':args.lr*10.}]
+        else:
+            params += [{'params':[value],'lr':args.lr}] # args.lr*0.
+
+
     print('=> Use optimizer: ', args.optimizer)
     if args.optimizer == 'Adam':
         if args.all_parameter_freeze:
@@ -63,7 +73,8 @@ def get_optimizer(args, model):
             else:
                 optimizer = torch.optim.Adam(model.module.last_linear.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
         else:
-            optimizer = torch.optim.Adam(model.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
+            # optimizer = torch.optim.Adam(model.parameters(),amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
+            optimizer = torch.optim.Adam(params, amsgrad=args.amsgrad,lr=args.lr,betas=(args.beta1, args.beta2),eps=args.small,weight_decay=args.weight_decay)
 
     elif args.optimizer == 'Sgd':
         if args.all_parameter_freeze:
@@ -72,7 +83,8 @@ def get_optimizer(args, model):
             else:
                 optimizer = torch.optim.SGD(model.module.last_linear.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
         else:
-            optimizer = torch.optim.SGD(model.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
+            # optimizer = torch.optim.SGD(model.parameters(),lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
+            optimizer = torch.optim.SGD(params,lr=args.lr,momentum=args.momentum,weight_decay=args.weight_decay,nesterov=args.nesterov)
 
     elif args.optimizer == 'AdaBound':
         from adabound_optim import AdaBound
@@ -82,7 +94,8 @@ def get_optimizer(args, model):
             else:
                 optimizer = AdaBound(model.module.last_linear.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
         else:
-            optimizer = AdaBound(model.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
+            # optimizer = AdaBound(model.parameters(),lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
+            optimizer = AdaBound(params,lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
     return optimizer
 
 
@@ -119,7 +132,7 @@ def load_checkpoint(model, optimizer, lr_scheduler, args, resume=True, ckpt=None
             args.start_epoch = checkpoint['epoch']
             best_top3 = checkpoint['best_top3']
             model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            # optimizer.load_state_dict(checkpoint['optimizer'])
         #  scheduler.load_state_dict(checkpoint['scheduler'])
             print("=> loaded checkpoint '{}' (epoch {})"
                 .format(args.resume, checkpoint['epoch']))
@@ -168,8 +181,8 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
 
         _, predicted = torch.max(output, 1)
         total += target.size(0)
-        correct += (lam * predicted.eq(targets_a.data).cpu().sum().float()
-                    + (1 - lam) * predicted.eq(targets_b.data).cpu().sum().float())
+        correct += (lam * predicted.eq(target_a.data).cpu().sum().float()
+                    + (1 - lam) * predicted.eq(target_b.data).cpu().sum().float())
         acc = correct / total
 
         # compute gradient and do SGD step
@@ -254,7 +267,7 @@ def validate(args, val_loader, model, criterion, epoch, writer):
                     top3=top3, acc=acc))
 
                 # if i % 10 == 0:
-                # break # TODO: Debug
+                #     break # TODO: Debug
 
 #         print(' * Top-3 Accuracy {top3.accuracy:.3f}'
 #               .format(top3=top3))
@@ -327,7 +340,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
     if args.evaluate:
         validate(val_loader, model, criterion)
     else:
-        model, optimizer, lr_scheduler, args, best_top3, best_acc = load_checkpoint(model, optimizer, lr_scheduler, args, resume=args.resume, ckpt=args.ckpt)
+        model, optimizer, lr_scheduler, args, best_top3, best_acc = load_checkpoint(model, optimizer, lr_scheduler, args, resume=args.resume, ckpt=args.pretrained_model_path)
         wut = None
         writer = writer
         if args.debug_weights:
@@ -346,6 +359,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
             print('is_best: ', is_best)
             best_acc = max(acc, best_acc)
             mkdir_exp_dir(args)
+
             if is_best:
                 print("BEST at epoch: ", epoch)
                 save_checkpoint({
@@ -355,7 +369,7 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
                     'best_top3': best_top3,
                     'best_acc': best_acc,
                     'optimizer' : optimizer.state_dict(),
-                    # 'scheduler' : scheduler.state_dict(),
+                    'scheduler' : lr_scheduler.state_dict(),
                     }, is_best, args, epoch, best_acc)
                 test(args.output_file, args.params_file, args, test_dset, test_loader, args.best, model, num_output_labels=args.num_output_labels, epoch=epoch)
             adjust_learning_rate(optimizer, lr_scheduler, epoch, val_loss, args)
@@ -367,16 +381,12 @@ def train_loop(train_loader=None, val_loader=None, test_loader=None, test_dset=N
 
 
 def start_train(args):
-    model = get_model(args)
+    model, clasify = get_model(args)
     criterion = get_criterion(args)
-    optimizer = get_optimizer(args, model)
+    optimizer = get_optimizer(args, model, clasify)
     lr_scheduler = get_lr_scheduler(args, optimizer)
 
     train_loader, val_loader, test_loader, test_dset = get_data_loader(args)
-
-    # if args.DEBUG:
-    #     writer = tbx.SummaryWriter("/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/debug/")
-    # else:
     writer = tbx.SummaryWriter(args.log_dir)
 
     train_loop(

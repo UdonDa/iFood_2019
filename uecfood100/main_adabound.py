@@ -221,18 +221,19 @@ params_dict = dict(net.named_parameters())
 params = []
 for key, value in params_dict.items():
     # if key in classifier_layers:
-        # params += [{'params':[value],'lr':args.lr*10.}]
+    #     params += [{'params':[value],'lr':args.lr*10.}]
     params += [{'params':[value],'lr':args.lr}]
     # else:
-        # params += [{'params':[value],'lr':args.lr}] # args.lr*0.
+    #     params += [{'params':[value],'lr':args.lr}] # args.lr*0.
 
 ### adabound        
 from lib import *
-optimizer = adabound.AdaBound(params, lr=1e-3, final_lr=0.1)
+# optimizer = adabound.AdaBound(params, lr=1e-3, final_lr=0.1)
+optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=5e-4, nesterov=True)
 
 lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                             optimizer,
-                            500,
+                            100,
                             )
     
 # Training

@@ -2,7 +2,7 @@ import os
 from torch.backends import cudnn
 from parameter import get_parameters
 from solver import start_train as train
-from solver import start_train as train_mixup
+from solver_mixup import start_train as train_mixup
 
 # import argparse
 # parser.add_argument('--gpu', '-g', default='0', type=str, help='gpu id')
