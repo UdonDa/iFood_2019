@@ -7,6 +7,8 @@ import torch
 from torchvision import transforms
 import numpy as np
 import torch.utils.data
+from parameter import get_parameters
+import pandas as pd
 
 def arg():
     parser = argparse.ArgumentParser(description='tmplate')
@@ -32,34 +34,23 @@ class Food101Dataset(torch.utils.data.Dataset):
     
     def __init__(self, train=True, transform=None):
         if train:
-            self.img_name, self.label = parse_info(csv_path)
+            self.img_name, self.label = parse_info('/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/preprocessing/food101/train.csv')
         else:
-            with open('/host/data/dataset/food101/meta/test.txt', 'r') as f:
-                self.ids = f.read().strip().split('\n')
+            self.img_name, self.label = parse_info('/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/preprocessing/food101/test.csv')
                 
         self.transform = transform
         
     def __len__(self):
-        return len(self.ids)
+        return len(self.img_name)
         
     def __getitem__(self, idx):
-        img_path, label = self.ids[idx].split()
-        image = Image.open(img_path)
-        label = int(label)
+        img, label = self.img_name[idx], self.label[idx]
+        img = pil_loader(img)
+        img = self.transform(img)
         
-        if self.transform:
-            ### blur (rescale: 0.3~1.3)
-            #rate  = 0.3 + random.random()
-            #image = image.resize([int(x // (1/rate)) for x in image.size]).resize(image.size)
-            ### preprocessing
-            image = self.transform(image)
-        
-        return image, label
+        return img, label
 
-
-
-
-def get_uecfood_dataloader(args):
+def get_food101_dataloader(args):
 
     transform_train = transforms.Compose([
         transforms.Resize(args.image_min_size),
@@ -82,19 +73,23 @@ def get_uecfood_dataloader(args):
                 ])
 
 
-    trainset = UECFood100Dataset(train=True, transform=transform_train)
+    trainset = Food101Dataset(train=True, transform=transform_train)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=8, shuffle=True, num_workers=4)
 
-    testset = UECFood100Dataset(train=False, transform=transform_test)
+    testset = Food101Dataset(train=False, transform=transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=1, shuffle=False, num_workers=1)
 
     return trainloader, testloader
 
 
 if __name__ == "__main__":
+    args = get_parameters()
+    trainloader , testloader = get_food101_dataloader(args)
     
-    #args = arg()
-    output_dir = 'UECFOOD100'
-    uecfood100_crop(output_dir)
-    #trates()
-    #category()
+    from sys import exit
+    for image, label in trainloader:
+        print('image.size(): ', image.size())
+        print('label.size(): ', label.size())
+
+        exit()
+    
