@@ -37,7 +37,7 @@ def mkdir_exp_dir(args):
 
     p['lr'] = args.lr
     p['lr_scheduler'] = args.lr_scheduler
-
+    p['optimizer'] = args.optimizer
     if args.optimizer == 'Adam':
         p['lr'] = args.lr
         p['beta1'] = args.beta1
@@ -68,7 +68,7 @@ def get_parameters():
     args.data_dir = '/export/ssd/dataset/iFood2019'
     # args.data_dir = '/Users/daichi/Downloads/ifood'
 
-    args.output_dir = '../results2'
+    args.output_dir = '../results3'
 
     args.train_dir = args.data_dir + os.sep + 'train_set'
     args.val_dir = args.data_dir + os.sep + 'val_set'
@@ -87,16 +87,25 @@ def get_parameters():
     args.start_epoch = 1
     args.small = 1e-12
 
-    """ Resume """
+    
+
+    """Resume"""
     args.resume = False
     args.pretrained_model_path = None
     # args.resume = True # Pretrained model
-    # # # RESNEXT
-    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101755_resnext10132x4d/ckpt/best-19-0.6727-resnext10132x4d.pth.tar'
-    # # NASNET
-    # # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_nasnetalarge/ckpt/best-8-0.6174-nasnetalarge.pth.tar'
-    # # SENET
+
+    # RESNEXT
+    ## args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101755_resnext10132x4d/ckpt/best-19-0.6727-resnext10132x4d.pth.tar'
+    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results2/reso2-Sgd-ParamFreeze-False-mixup-True-randomErasing-False-resume-True/201905131418_resnext10132x4d/ckpt/ckpt-69-0.7329-resnext10132x4d.pth.tar'
+    # NASNET
+    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_nasnetalarge/ckpt/best-8-0.6174-nasnetalarge.pth.tar'
+    # SENET
     # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_senet154/ckpt/best-7-0.6845-senet154.pth.tar'
+
+    """Pretrained UECFOOD100 or FOOD101"""
+    args.pre_learned = True
+    args.pre_dataset = 'UECFOOD'
+    # args.pre_learned = False
 
     """mixup"""
     args.mixup = True
@@ -109,17 +118,16 @@ def get_parameters():
     args.all_parameter_freeze = False
     # args.all_parameter_freeze = True
 
-
     # args.resolution = 1
     args.resolution = 2
 
     # Pretrainedmodels
-    args.arch = 'pnasnet5large'
+    # args.arch = 'pnasnet5large'
     # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
     # args.arch = 'polynet'
-    # args.arch = 'inceptionresnetv2'
+    args.arch = 'inceptionresnetv2'
     # args.arch = 'inceptionv4'
 
     # Torchvisions
@@ -128,8 +136,8 @@ def get_parameters():
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    args.optimizer = 'Sgd'
-    # args.optimizer = 'AdaBound'
+    # args.optimizer = 'Sgd'
+    args.optimizer = 'AdaBound'
 
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
@@ -143,7 +151,7 @@ def get_parameters():
     args.earlystopping_min_delta = 1e-5      # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement
 
     args.evaluate = False
-    args.epochs = 500
+    args.epochs = 200
     
     args.output_dir += '/reso{}-{}-ParamFreeze-{}-mixup-{}-randomErasing-{}-resume-{}'.format(args.resolution, args.optimizer, args.all_parameter_freeze, args.mixup, args.random_erasing, args.resume)
 
@@ -199,6 +207,10 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 1:
+                    args.batch_size = 4
+                if num_of_gpus == 2:
+                    args.batch_size = 8
                 if num_of_gpus == 4:
                     args.batch_size = 16
             args.val_batch_size = args.batch_size
@@ -227,6 +239,8 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 2:
+                    args.batch_size = 8
                 if num_of_gpus == 4:
                     args.batch_size = 12
             args.val_batch_size = args.batch_size
@@ -257,6 +271,8 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 2:
+                    args.batch_size = 16
                 if num_of_gpus == 4:
                     args.batch_size = 32
                 if num_of_gpus == 10:
@@ -289,6 +305,8 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 2:
+                    args.batch_size = 8
                 if num_of_gpus == 4:
                     args.batch_size = 20
                 elif num_of_gpus == 10:
@@ -357,6 +375,8 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 2:
+                    args.batch_size = 12
                 if num_of_gpus == 4:
                     args.batch_size = 20
                 elif num_of_gpus == 10:
@@ -391,6 +411,8 @@ def get_parameters():
             elif args.resolution == 2:
                 args.image_min_size = 478
                 args.nw_input_size = 448
+                if num_of_gpus == 2:
+                    args.batch_size = 12
                 if num_of_gpus == 4:
                     args.batch_size = 20
                 elif num_of_gpus == 10:
@@ -458,10 +480,12 @@ def get_parameters():
         args.weight_decay = 5e-4
         args.nesterov = True
     elif args.optimizer == 'AdaBound':
-        args.lr = 1e-3
+        # args.lr = 1e-3
+        args.lr = 1e-4
         args.beta1 = 0.9
         args.beta2 = 0.999
-        args.final_lr = 0.1
+        # args.final_lr = 0.1
+        args.final_lr = 0.01
         args.gamma = 1e-3
 
     """Lr scheduler"""

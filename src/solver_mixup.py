@@ -20,6 +20,8 @@ from parameter import mkdir_exp_dir
 from logger import Logger
 
 
+device = 'cuda'# if torch.cuda.is_available() else 'cpu'
+
 def mixup_data(x, y, alpha=1.0):
     '''Returns mixed inputs, pairs of targets, and lambda'''
     if alpha > 0:
@@ -28,7 +30,7 @@ def mixup_data(x, y, alpha=1.0):
         lam = 1
 
     batch_size = x.size(0)
-    index = torch.randperm(batch_size).cuda()
+    index = torch.randperm(batch_size).to(device)
     mixed_x = lam * x + (1 - lam) * x[index, :]
     y_a, y_b = y, y[index]
     return mixed_x, y_a, y_b, lam
@@ -46,9 +48,9 @@ def get_model(args):
 def get_criterion(args):
     criterion = None
     if args.loss_type == 'BCEWithLogitsLoss':
-        criterion = nn.BCEWithLogitsLoss().cuda()
+        criterion = nn.BCEWithLogitsLoss().to(device)
     elif args.loss_type == 'CrossEntropyLoss':
-        criterion = nn.CrossEntropyLoss().cuda()    
+        criterion = nn.CrossEntropyLoss().to(device)    
 
     return criterion
 
@@ -115,8 +117,8 @@ def get_lr_scheduler(args, optimizer):
         lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
                             optimizer,
                             args.T_max,
-                            eta_min=args.eta_min,
-                            last_epoch=args.last_epoch
+                            # eta_min=args.eta_min,
+                            # last_epoch=args.last_epoch
                             )
     return lr_scheduler
 
@@ -166,7 +168,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch, writer):
     start_time = time.time()
 
     for i, (input, target) in enumerate(train_loader):
-        input, target = input.cuda(), target.cuda().long()
+        input, target = input.to(device), target.to(device).long()
 
         # Mixup
         input, target_a, target_b, lam = mixup_data(input, target, args.alpha)
@@ -233,7 +235,7 @@ def validate(args, val_loader, model, criterion, epoch, writer):
         loss_avg_epoch = 0.0
 
         for i, (input, target) in enumerate(val_loader):
-            input, target = input.cuda(), target.cuda().long()
+            input, target = input.to(device), target.to(device).long()
 
             # output = model(input) # When you do not use Ten crops.
 
@@ -306,7 +308,7 @@ def test(ofname, pfname, args, test_dset,
             end = time.time()
             index = 0
             for i, input in enumerate(test_loader):
-                input = input.cuda()
+                input = input.to(device)
                 # output = model(input) # When you do not use Ten crops.
 
                 bs, ncrops, c, h, w = input.size() # When you use Ten crops.

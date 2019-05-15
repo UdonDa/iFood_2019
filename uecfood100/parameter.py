@@ -87,9 +87,9 @@ def get_parameters():
     # args.arch = 'resnext10132x4d'
     # args.arch = 'nasnetalarge'
     # args.arch = 'senet154'
-    # args.arch = 'polynet'
+    args.arch = 'polynet'
     # args.arch = 'inceptionresnetv2'
-    args.arch = 'inceptionv4'
+    # args.arch = 'inceptionv4'
 
     # Torchvisions
     # args.arch = 'resnet18'

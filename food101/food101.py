@@ -9,6 +9,7 @@ import numpy as np
 import torch.utils.data
 from parameter import get_parameters
 import pandas as pd
+from sys import exit
 
 def arg():
     parser = argparse.ArgumentParser(description='tmplate')

@@ -59,7 +59,8 @@ def get_parameters():
 
     args.debug_weights = False
     args.test_overfit = False
-    args.num_labels = 100
+    args.pretrained_num_labels = 100
+    args.num_labels = 101
     
     args.num_workers = 8
 
@@ -83,13 +84,13 @@ def get_parameters():
     args.resolution = 2
 
     # Pretrainedmodels
-    # args.arch = 'pnasnet5large'
+    # args.arch = 'pnasnet5large' #gp28-1,2 #gp12 scratch #ok
     # args.arch = 'resnext10132x4d'
-    # args.arch = 'nasnetalarge'
-    # args.arch = 'senet154'
+    # args.arch = 'nasnetalarge'  # gp28-2,3 #ok
+    args.arch = 'senet154' #ok #gp26-1,2
     # args.arch = 'polynet'
-    # args.arch = 'inceptionresnetv2'
-    args.arch = 'inceptionv4'
+    # args.arch = 'inceptionresnetv2' #ok # gp09
+    # args.arch = 'inceptionv4' #ok # gp26-2,3
 
     # Torchvisions
     # args.arch = 'resnet18'
@@ -97,8 +98,8 @@ def get_parameters():
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    args.optimizer = 'Sgd'
-    # args.optimizer = 'AdaBound'
+    # args.optimizer = 'Sgd'
+    args.optimizer = 'AdaBound'
 
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]

@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+import numpy as np
 
 import torchvision
 import torchvision.transforms as transforms
@@ -16,12 +17,13 @@ import argparse
 
 import models
 from utils import progress_bar, display, get_mean_and_std
-from uecfood100 import *
+from food101 import get_food101_dataloader
+from sys import exit
 
 parser = argparse.ArgumentParser(description='PyTorch UECFOOD100 Training')
 parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
-#parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-parser.add_argument('--resume', '-r', default=None, type=str, help='resume from checkpoint')
+parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+# parser.add_argument('--resume', '-r', default=None, type=str, help='resume from checkpoint')
 parser.add_argument('--gpu', '-g', default='0', type=str, help='gpu id')
 # parser.add_argument('--net', '-n', default='resnet18', type=str, help='model')
 parser.add_argument('--net', '-n', default='inceptionv4', type=str, help='model')
@@ -38,14 +40,14 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
-print('==> Preparing data..')
-if 'polynet' in args.net:
-    rsize, csize = 363, 331
-elif 'inception' in args.net:
-    rsize, csize = 331, 299
-else:
-    rsize, csize = 256, 224
-print('rsize:{} csize:{}'.format(rsize, csize))
+# print('==> Preparing data..')
+# if 'polynet' in args.net:
+#     rsize, csize = 363, 331
+# elif 'inception' in args.net:
+#     rsize, csize = 331, 299
+# else:
+#     rsize, csize = 256, 224
+# print('rsize:{} csize:{}'.format(rsize, csize))
     
 # transform_train = transforms.Compose([
 #     transforms.RandomRotation(180),
@@ -83,9 +85,9 @@ print('==> Building model..')
 from parameter import get_parameters
 from pre_models import create_model
 config = get_parameters()
-trainloader, testloader = get_uecfood_dataloader(config)
+trainloader, testloader = get_food101_dataloader(config)
 net, classifier_layers = create_model(config)
-
+net = net.to(device)
 
 # net = models.__dict__[args.net](pretrained='imagenet', num_classes=1000)
 # net.num_classes = num_classes = 100
@@ -169,19 +171,9 @@ net, classifier_layers = create_model(config)
 # print(type(net))
 
 # net = net.to(device)
-# if device == 'cuda':
+# if S= 'cuda':
 #     net = torch.nn.DataParallel(net)
 #     cudnn.benchmark = True
-    
-if args.resume:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    print(args.resume)
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load(args.resume)
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
     
 criterion = nn.CrossEntropyLoss()
 # if 'alexnet' in args.net:
@@ -220,25 +212,44 @@ criterion = nn.CrossEntropyLoss()
 params_dict = dict(net.named_parameters())
 params = []
 for key, value in params_dict.items():
-    # if key in classifier_layers:
-    #     params += [{'params':[value],'lr':args.lr*10.}]
-    params += [{'params':[value],'lr':args.lr}]
-    # else:
-    #     params += [{'params':[value],'lr':args.lr}] # args.lr*0.
+    if key in classifier_layers:
+        params += [{'params':[value],'lr':args.lr*10.}]
+    else:
+        params += [{'params':[value],'lr':args.lr}] # args.lr*0.
 
 ### adabound        
 from lib import *
-# optimizer = adabound.AdaBound(params, lr=1e-3, final_lr=0.1)
-optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=5e-4, nesterov=True)
+optimizer = adabound.AdaBound(params, lr=1e-3, final_lr=0.1)
+# optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=1e-4, nesterov=True)
 
 lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                             optimizer,
                             100,
                             )
-    
+
 # Training
 # configure("runs/run-{}".format(args.out), flush_secs=5)
 writer = tbx.SummaryWriter("runs/run-{}".format(args.out))
+
+
+def mixup_data(x, y, alpha=1.0):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).cuda()
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    """mixup criterion"""
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+
 def train(epoch):
     log_step = epoch * trainloader.__len__()
     print('\nEpoch: %d' % epoch)
@@ -258,16 +269,21 @@ def train(epoch):
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
 
+        # Mixup
+        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, config.alpha)
+
         optimizer.zero_grad()
         outputs = net(inputs)
-        
+
         if type(outputs) is tuple:
             loss = 0
             for output in outputs:
-                loss += criterion(output, targets)
+                # loss += criterion(output, targets)
+                loss += mixup_criterion(criterion, outputs, targets_a, targets_b, lam)
             outputs = outputs[-1]
         else:
-            loss = criterion(outputs, targets)
+            # loss = criterion(outputs, targets)
+            loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam)
         
         loss.backward()
         optimizer.step()
