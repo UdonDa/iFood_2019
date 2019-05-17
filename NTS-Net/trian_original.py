@@ -16,6 +16,7 @@ import time
 import argparse
 from sys import exit
 from adabound_optim import AdaBound
+from collections import OrderedDict
 
 
 # Parser
@@ -73,11 +74,10 @@ def save_checkpoint(state, args, epoch, best_acc):
     save_path = os.path.join(args.ckpt_dir, filename)
     torch.save(state, save_path)
     print('==> Sucess to save model: ', save_path)
-    
 
 
 # read dataset
-trainloader, valloader, testloader, test_dset = get_data_loader(args)
+trainloader, val_loader, test_loader, test_dset = get_data_loader(args)
 
 # define model
 net = modelNTS.attention_net(args)
@@ -184,6 +184,10 @@ for epoch in range(start_epoch, args.epochs):
                     acc=acc
                 )
             )
+
+        # if i % 11 == 0:
+        #     break # TODO: Debug
+
     writer.add_scalar('Train/TotalLoss', total_loss_meter.avg, epoch)
     writer.add_scalar('Train/RawLoss', raw_loss_meter.avg, epoch)
     writer.add_scalar('Train/RankLoss', rank_loss_meter.avg, epoch)
@@ -195,7 +199,7 @@ for epoch in range(start_epoch, args.epochs):
     loss_meter = AverageMeter()
     acc, correct, total = 0, 0, 0
     # switch to evaluate mode
-    model.eval()
+    net.eval()
 
     with torch.no_grad():
         start_time = time.time()
@@ -205,7 +209,7 @@ for epoch in range(start_epoch, args.epochs):
             input, label = input.to(device), target.to(device).long()
 
             bs, ncrops, c, h, w = input.size() # When you use Ten crops.
-            _, concat_logits, _, _, _  = model(input.view(-1, c, h, w))
+            _, concat_logits, _, _, _  = net(input.view(-1, c, h, w))
             concat_logits = concat_logits.view(bs, ncrops, -1).mean(1)
 
             loss = criterion(concat_logits, label)
@@ -231,10 +235,11 @@ for epoch in range(start_epoch, args.epochs):
                 et = time.time() - start_time
                 et = str(datetime.timedelta(seconds=et))[:-7]
                 
-                print('Val: [{0}/{1}]\t'
+                print('Val: [{0}][{1}/{2}]\t'
                     'Time: {time}\t'
                     'Loss: {loss_meter.avg:.4f}\t'
                     'Acc {acc:.4f}'.format(
+                        epoch,
                         i,
                         len(val_loader),
                         time=et,
@@ -251,7 +256,7 @@ for epoch in range(start_epoch, args.epochs):
 
     
 
-    is_best = acc > best_acc
+    is_best = acc >= best_acc
     print('acc: {:.4f}, best_acc {:.4f}'.format(acc, best_acc))
     print('is_best: ', is_best)
     best_acc = max(acc, best_acc)
@@ -260,7 +265,7 @@ for epoch in range(start_epoch, args.epochs):
         save_checkpoint({
             'epoch': epoch,
             'arch': args.arch,
-            'state_dict': model.state_dict(),
+            'state_dict': net.state_dict(),
             'best_acc': best_acc,
             'raw_optimizer' : raw_optimizer.state_dict(),
             'concat_optimizer' : concat_optimizer.state_dict(),
@@ -269,82 +274,36 @@ for epoch in range(start_epoch, args.epochs):
             }, args, epoch, best_acc)
         
 
-
-
-
-        
-
-        
-
-        
-        
-
-    if epoch % SAVE_FREQ == 0:
-        train_loss = 0
-        train_correct = 0
-        total = 0
+        """Testing part"""
+        res = OrderedDict()
         net.eval()
-        for i, data in enumerate(trainloader):
+        ofname_ = '{}/{}.csv'.format(args.submission_dir, epoch)
+        with open(ofname_, "w") as ofd:
+            ofd.write("img_name,label\n")
             with torch.no_grad():
-                img, label = data[0].cuda(), data[1].cuda()
-                batch_size = img.size(0)
-                _, concat_logits, _, _, _ = net(img)
-                # calculate loss
-                concat_loss = criterion(concat_logits, label)
-                # calculate accuracy
-                _, concat_predict = torch.max(concat_logits, 1)
-                total += batch_size
-                train_correct += torch.sum(concat_predict.data == label.data)
-                train_loss += concat_loss.item() * batch_size
-                progress_bar(i, len(trainloader), 'eval train set')
+                end = time.time()
+                index = 0
+                for i, input in enumerate(test_loader):
+                    input = input.cuda()
 
-        train_acc = float(train_correct) / total
-        train_loss = train_loss / total
+                    bs, ncrops, c, h, w = input.size() # When you use Ten crops.
+                    _, output, _, _, _ = net(input.view(-1, c, h, w))
+                    output = output.view(bs, ncrops, -1).mean(1)
+                    res = torch.exp(output).topk(args.num_output_labels, dim=1)[1].cpu().numpy().tolist()
 
-        _print(
-            'epoch:{} - train loss: {:.3f} and train acc: {:.3f} total sample: {}'.format(
-                epoch,
-                train_loss,
-                train_acc,
-                total))
+                    for j, resj in enumerate(res):
+                        result = "%s,%s\n" % (os.path.basename(test_dset.img_name[index]), " ".join(map(str, resj)))
+                        ofd.write(result)
+                        index += 1
 
-	# evaluate on test set
-        test_loss = 0
-        test_correct = 0
-        total = 0
-        for i, data in enumerate(testloader):
-            with torch.no_grad():
-                img, label = data[0].cuda(), data[1].cuda()
-                batch_size = img.size(0)
-                _, concat_logits, _, _, _ = net(img)
-                # calculate loss
-                concat_loss = criterion(concat_logits, label)
-                # calculate accuracy
-                _, concat_predict = torch.max(concat_logits, 1)
-                total += batch_size
-                test_correct += torch.sum(concat_predict.data == label.data)
-                test_loss += concat_loss.item() * batch_size
-                progress_bar(i, len(testloader), 'eval test set')
+                    if i % 10 == 0:
+                        # measure elapsed time
+                        et = time.time() - start_time
+                        et = str(datetime.timedelta(seconds=et))[:-7]
 
-        test_acc = float(test_correct) / total
-        test_loss = test_loss / total
-        _print(
-            'epoch:{} - test loss: {:.3f} and test acc: {:.3f} total sample: {}'.format(
-                epoch,
-                test_loss,
-                test_acc,
-                total))
+                        print('Test: [{0}][{1}/{2}]\t'
+                            'Time: {time}\t'.format(
+                            epoch, i, len(test_loader), time=et))
 
-	# save model
-        net_state_dict = net.module.state_dict()
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
-        torch.save({
-            'epoch': epoch,
-            'train_loss': train_loss,
-            'train_acc': train_acc,
-            'test_loss': test_loss,
-            'test_acc': test_acc,
-            'net_state_dict': net_state_dict},
-            os.path.join(save_dir, '%03d.ckpt' % epoch))
-
+                    # if i % 11 == 0: # TODO: debug
+                    #     break
