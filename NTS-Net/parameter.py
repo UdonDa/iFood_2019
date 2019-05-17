@@ -78,6 +78,7 @@ def get_parameters():
     args.num_labels = 251
     args.epochs = 500
     args.num_output_labels = 3
+    args.test_overfit = False
     
     args.num_workers = 8
 
@@ -90,9 +91,7 @@ def get_parameters():
 
 
     """Resume"""
-    args.resume = False
-    args.pretrained_model_path = None
-    # args.resume = True # Pretrained model
+    args.resume_model_path = None
 
     """Pretrained UECFOOD100 or FOOD101"""
     args.pre_learned = True
