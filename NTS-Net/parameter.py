@@ -94,12 +94,7 @@ def get_parameters():
 
     """Resume"""
     args.resume_model_path = None
-
-    """Pretrained UECFOOD100 or FOOD101"""
-    args.pre_learned = True
-    args.pre_dataset = 'UECFOOD100'
-    # args.pre_dataset = 'FOOD101'
-    # args.pre_learned = False
+    
 
     """mixup"""
     # args.mixup = True
@@ -113,38 +108,54 @@ def get_parameters():
     # args.random_erasing_r1 = 0.3
     args.random_erasing = False
 
+
     """Only linear?"""
     args.all_parameter_freeze = False
     # args.all_parameter_freeze = True
+
 
     """Image size"""
     # args.resolution = 1
     args.resolution = 2
 
+
+    """Pretrained UECFOOD100 or FOOD101"""
+    # args.pre_learned = True
+    # args.pre_dataset = 'UECFOOD100'
+    # args.pre_dataset = 'FOOD101'
+
+    args.pre_learned = False
+    args.pre_dataset = 'imagenet'
+
+
     """Model architecture"""
-    # Pretrainedmodels
     args.library_type = 'Pretrainedmodels'
     # # args.arch = 'default'
     # args.arch = 'pnasnet5large' # rankinglossがnanになる
 
     # args.arch = 'nasnetalarge'# works
-    args.arch = 'resnext10132x4d' # works
+    # args.arch = 'resnext10132x4d' # works
     # args.arch = 'senet154' # works
     # args.arch = 'polynet'
-    # args.arch = 'inceptionresnetv2' #works
+    args.arch = 'inceptionresnetv2' #works
     # args.arch = 'inceptionv4' #works
 
-    # # Torchvisions
     # args.library_type = 'torchvisions'
     # args.arch = 'resnet18'
     # args.arch = 'resnet50' # works
     # args.arch = 'resnet152' # works
 
+    """Save Path"""
+    # args.save_path = './results/debug'
+    # args.save_path = './results/uecfood'
+    args.save_path = './results/scratch'
+    # args.save_path = './results/food101'
+
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    args.optimizer = 'Sgd'
-    # args.optimizer = 'AdaBound'
+    # args.optimizer = 'Sgd'
+    args.optimizer = 'AdaBound'
 
 
     """Lr Scheduler"""
@@ -158,9 +169,7 @@ def get_parameters():
     args.loss_type = 'CrossEntropyLoss'
 
     
-    """Save Path"""
-    args.save_path = './results/debug'
-    # args.save_path = './results/uecfood'
+    
 
     args.save_dir = os.path.join(args.save_path, '{}-{}'.format(args.arch, datetime.datetime.now().strftime('%Y%m%d_%H%M%S')))
 
@@ -207,6 +216,8 @@ def get_parameters():
                     args.batch_size = 2
                 if num_of_gpus == 4:
                     args.batch_size = 4
+                if num_of_gpus == 8:
+                    args.batch_size = 8
             args.val_batch_size = args.batch_size
 
     elif args.arch == 'nasnetalarge':
@@ -270,7 +281,7 @@ def get_parameters():
                 if num_of_gpus == 2:
                     args.batch_size = 8
                 if num_of_gpus == 4:
-                    args.batch_size = 16
+                    args.batch_size = 12
                 if num_of_gpus == 10:
                     args.batch_size = 64
             args.val_batch_size = args.batch_size
@@ -457,7 +468,7 @@ def get_parameters():
             elif num_of_gpus == 4:
                 args.batch_size = 40
             elif num_of_gpus == 10:
-                args.batch_size = 44
+                args.batch_size = 80
         print('args.batch_size: ', args.batch_size)
         args.val_batch_size = args.batch_size
     elif args.arch == 'resnet152':
@@ -479,9 +490,9 @@ def get_parameters():
             if num_of_gpus == 2:
                 args.batch_size = 8
             elif num_of_gpus == 4:
-                args.batch_size = 12
+                args.batch_size = 20
             elif num_of_gpus == 10:
-                args.batch_size = 44
+                args.batch_size = 50
             args.val_batch_size = args.batch_size
 
     
@@ -520,6 +531,7 @@ def get_parameters():
         args.last_epoch = 4e-4
     
     save_exp_info(args)
+    print('Batch size: ', args.batch_size)
     return args
 
 
