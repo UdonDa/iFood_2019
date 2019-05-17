@@ -79,6 +79,8 @@ def get_parameters():
     args.epochs = 500
     args.num_output_labels = 3
     args.test_overfit = False
+    args.num_labels_uecfood100 = 100
+    args.num_labels_food101 = 101
     
     args.num_workers = 8
 
@@ -95,7 +97,8 @@ def get_parameters():
 
     """Pretrained UECFOOD100 or FOOD101"""
     args.pre_learned = True
-    args.pre_dataset = 'UECFOOD'
+    args.pre_dataset = 'UECFOOD100'
+    # args.pre_dataset = 'FOOD101'
     # args.pre_learned = False
 
     """mixup"""
@@ -119,22 +122,22 @@ def get_parameters():
     args.resolution = 2
 
     """Model architecture"""
-    # # Pretrainedmodels
-    # args.library_type = 'Pretrainedmodels'
+    # Pretrainedmodels
+    args.library_type = 'Pretrainedmodels'
     # # args.arch = 'default'
     # args.arch = 'pnasnet5large' # rankinglossがnanになる
 
     # args.arch = 'nasnetalarge'# works
-    # args.arch = 'resnext10132x4d' # works
+    args.arch = 'resnext10132x4d' # works
     # args.arch = 'senet154' # works
     # args.arch = 'polynet'
     # args.arch = 'inceptionresnetv2' #works
     # args.arch = 'inceptionv4' #works
 
     # # Torchvisions
-    args.library_type = 'torchvisions'
+    # args.library_type = 'torchvisions'
     # args.arch = 'resnet18'
-    args.arch = 'resnet50' # works
+    # args.arch = 'resnet50' # works
     # args.arch = 'resnet152' # works
 
 

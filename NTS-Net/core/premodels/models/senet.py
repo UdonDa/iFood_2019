@@ -381,9 +381,9 @@ def initialize_pretrained_model(model, num_classes, settings):
 def senet154(num_classes=1000, pretrained='imagenet'):
     model = SENet(SEBottleneck, [3, 8, 36, 3], groups=64, reduction=16,
                   dropout_p=0.2, num_classes=num_classes)
-    # if pretrained is not None:
-    #     settings = pretrained_settings['senet154'][pretrained]
-    #     initialize_pretrained_model(model, num_classes, settings)
+    if pretrained is not None:
+        settings = pretrained_settings['senet154'][pretrained]
+        initialize_pretrained_model(model, num_classes, settings)
     return model
 
 

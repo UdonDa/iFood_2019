@@ -6,11 +6,27 @@ from core import resnet
 import numpy as np
 from core.anchors import generate_default_anchor_maps, hard_nms
 from config import CAT_NUM, PROPOSAL_NUM
+from core.premodels.models import *
+
+
+
+def convert_state_dict(state_dict):
+    from collections import OrderedDict
+    new_state_dict = OrderedDict()
+    for k, v in state_dict.items():
+        if 'module.' in k:
+            name = k[7:]  # remove `module.`
+        else:
+            name = k
+        new_state_dict[name] = v
+    return new_state_dict
+
 
 
 class ProposalNet(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(ProposalNet, self).__init__()
+        self.args = args
         self.down1 = nn.Conv2d(2048, 128, 3, 1, 1)
         self.down2 = nn.Conv2d(128, 128, 3, 2, 1)
         self.down3 = nn.Conv2d(128, 128, 3, 2, 1)
@@ -18,6 +34,7 @@ class ProposalNet(nn.Module):
         self.tidy1 = nn.Conv2d(128, 6, 1, 1, 0)
         self.tidy2 = nn.Conv2d(128, 6, 1, 1, 0)
         self.tidy3 = nn.Conv2d(128, 9, 1, 1, 0)
+        self.fc = nn.Linear(1161, 1614) # TODO: inceptionresnetv2, inceptionv4
 
     def forward(self, x):
         batch_size = x.size(0)
@@ -27,16 +44,98 @@ class ProposalNet(nn.Module):
         t1 = self.tidy1(d1).view(batch_size, -1)
         t2 = self.tidy2(d2).view(batch_size, -1)
         t3 = self.tidy3(d3).view(batch_size, -1)
-        return torch.cat((t1, t2, t3), dim=1)
+        f = torch.cat((t1, t2, t3), dim=1)
+
+        if self.args.arch == 'inceptionresnetv2' or self.args.arch == 'inceptionv4':
+            f = self.fc(f) # TODO: inceptionresnetv2
+
+        return f
+
+
+
+def create_model_uecfood(args):
+    model = None
+    if args.library_type == 'torchvisions':
+        if args.arch == 'resnet50':
+            model = resnet.resnet50(pretrained=True)
+        elif args.arch == 'resnet152':
+            model = resnet.resnet152(pretrained=True)
+        model.avgpool = nn.AdaptiveAvgPool2d(1)
+
+        if args.pre_learned:
+            model.fc = nn.Linear(args.fv_size, args.num_labels_uecfood100)
+        else:
+            model.fc = nn.Linear(args.fv_size, args.num_labels)
+
+    elif args.library_type == 'Pretrainedmodels':
+        if args.arch == 'pnasnet5large':
+            model = pnasnet5large(pretrained=False)
+        elif args.arch == 'nasnetalarge':
+            model = nasnetalarge(pretrained=False)
+        elif args.arch == 'senet154':
+            model = senet154(pretrained=None)
+        elif args.arch == 'polynet':
+            model = polynet(pretrained=False)
+        elif args.arch == 'inceptionresnetv2':
+            model = inceptionresnetv2(pretrained=False)
+        elif args.arch == 'inceptionv4':
+            model = inceptionv4(pretrained=False)
+        elif args.arch == 'resnext10132x4d':
+            model = resnext101_32x4d(pretrained=None)
+        model.avg_pool = nn.AdaptiveAvgPool2d(1)
+
+        if args.pre_learned:
+            model.last_linear = nn.Linear(args.fv_size, args.num_labels_uecfood100)
+        else:
+            model.last_linear = nn.Linear(args.fv_size, args.num_labels)
+
+
+    print('==> Resuming from checkpoint..')
+    pretrained_path = '/home/yanai-lab/horita-d/ifood/uecfood100/checkpoint/'
+    if args.arch == 'pnasnet5large':
+        pretrained_path += 'ckpt_pnas-adabound-2_epoch_38_acc_82.04600068657741.t7'
+    elif args.arch == 'resnext10132x4d':
+        pretrained_path += 'ckpt_resnext-adabound-2-vv3_epoch_82_acc_84.72365259182973.t7'
+    elif args.arch == 'nasnetalarge':
+        pretrained_path += 'ckpt_nas-adabound-2_epoch_41_acc_80.63851699279094.t7'
+    elif args.arch == 'senet154':
+        pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_se154_b8_e300.t7'
+    elif args.arch == 'inceptionresnetv2':
+        pretrained_path += 'ckpt_incepresv2-adabound-2_epoch_104_acc_81.66838311019568.t7'
+    elif args.arch == 'inceptionv4':
+        pretrained_path += 'ckpt_incepv4-adabound-2_epoch_113_acc_80.32955715756951.t7'
+    elif args.arch == 'resnet50':
+        pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_res50_b8_e300.t7'
+    elif args.arch == 'resnet152':
+        pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_res152_b8_e300.t7'
+
+    checkpoint = torch.load(pretrained_path)
+    state = convert_state_dict(checkpoint['net'])
+    # state = checkpoint['net']
+    model.load_state_dict(state)
+    # best_acc = checkpoint['acc']
+
+    if args.library_type == 'torchvisions':
+        model.fc = nn.Linear(args.fv_size, args.num_labels)
+    else:
+        model.last_linear = nn.Linear(args.fv_size, args.num_labels)
+
+    print('=> Loaded UECFOOD100 model...')
+    return model
+
 
 
 class attention_net(nn.Module):
     def __init__(self, args):
         super(attention_net, self).__init__()
+
         self.pretrained_model = resnet.resnet50(pretrained=True)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
         self.pretrained_model.fc = nn.Linear(args.fv_size, args.num_labels)
-        self.proposal_net = ProposalNet()
+
+
+
+        self.proposal_net = ProposalNet(args)
         self.topN = args.PROPOSAL_NUM
         self.concat_net = nn.Linear(args.fv_size * (CAT_NUM + 1), args.num_labels)
         self.partcls_net = nn.Linear(512 * 4, args.num_labels)

@@ -254,7 +254,6 @@ for epoch in range(start_epoch, args.epochs):
     writer.add_scalar('Val/Loss', loss_meter.avg, epoch)
     writer.add_scalar('Val/Acc', acc, epoch)
 
-    
 
     is_best = acc >= best_acc
     print('acc: {:.4f}, best_acc {:.4f}'.format(acc, best_acc))
