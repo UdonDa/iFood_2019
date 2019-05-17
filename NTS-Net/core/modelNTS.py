@@ -31,15 +31,15 @@ class ProposalNet(nn.Module):
 
 
 class attention_net(nn.Module):
-    def __init__(self, topN=4):
+    def __init__(self, args):
         super(attention_net, self).__init__()
         self.pretrained_model = resnet.resnet50(pretrained=True)
         self.pretrained_model.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.pretrained_model.fc = nn.Linear(512 * 4, 200)
+        self.pretrained_model.fc = nn.Linear(args.fv_size, args.num_labels)
         self.proposal_net = ProposalNet()
-        self.topN = topN
-        self.concat_net = nn.Linear(2048 * (CAT_NUM + 1), 200)
-        self.partcls_net = nn.Linear(512 * 4, 200)
+        self.topN = args.PROPOSAL_NUM
+        self.concat_net = nn.Linear(args.fv_size * (CAT_NUM + 1), args.num_labels)
+        self.partcls_net = nn.Linear(512 * 4, args.num_labels)
         _, edge_anchors, _ = generate_default_anchor_maps()
         self.pad_side = 224
         self.edge_anchors = (edge_anchors + 224).astype(np.int)
