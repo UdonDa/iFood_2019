@@ -3,27 +3,32 @@ import torch.utils.data
 from torch.nn import DataParallel
 import datetime
 from torch.optim.lr_scheduler import MultiStepLR
-from config import BATCH_SIZE, PROPOSAL_NUM, SAVE_FREQ, LR, WD, resume, save_dir
+# from config import BATCH_SIZE, PROPOSAL_NUM, SAVE_FREQ, LR, WD, resume, save_dir
 from core import modelNTS as model
 from core.utils import init_log, progress_bar
 from data_loader import get_data_loader
-from parameter import get_parameters
+from parameter import get_parameters, save_exp_info
 from util import AverageMeter, adjust_learning_rate, TopKAccuracyMicroAverageMeter, F1MicroAverageMeter, F1MicroAverageMeterByTopK
 import time
+import argparse
+from sys import exit
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
-start_epoch = 1
-save_dir = os.path.join(save_dir, datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
-if os.path.exists(save_dir):
-    raise NameError('model dir exists!')
-os.makedirs(save_dir)
-logging = init_log(save_dir)
-_print = logging.info
+
+# Parser
+parser = argparse.ArgumentParser(description='iFood 2019 challenge')
+parser.add_argument('--gpu', '-g', default='0', type=str, help='gpu id')
+parser.add_argument('--name', '-n', default='', type=str, help='gpu id')
+config = parser.parse_args()
+os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+
+args = get_parameters()
+
 
 # read dataset
-args = get_parameters()
 trainloader, valloader, testloader, test_dset = get_data_loader(args)
-testloader = valloader
+
+# Tensoroard
+writer = tbx.SummaryWriter(save_dir)
 
 # define model
 net = model.attention_net(args)

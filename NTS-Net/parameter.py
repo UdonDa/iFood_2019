@@ -4,6 +4,7 @@ import socket
 import re
 from datetime import datetime
 from collections import OrderedDict
+import datetime
 import torch
 
 
@@ -16,13 +17,9 @@ def get_hostname_timestamp_id():
 def mkdir_p(d):
     os.makedirs(d, exist_ok=True)
 
-def mkdir_exp_dir(args):
-    mkdir_p(args.exp_dir)
-    mkdir_p(args.ckpt_dir)
-    mkdir_p(args.sub_dir)
-
+def save_exp_info(args):
     
-    logfile = os.path.join(args.exp_dir, 'parameters.txt')
+    logfile = os.path.join(args.save_dir, 'parameters.txt')
     log_file = open(logfile, 'w')
     p = OrderedDict()
     p['arch'] = args.arch
@@ -32,7 +29,6 @@ def mkdir_exp_dir(args):
     p['epoch'] = args.epochs
     p['all_parameter_freeze'] = args.all_parameter_freeze
     p['mixup'] = args.mixup
-    p['tta'] = args.tta
     p['random_erasing']= args.random_erasing
 
     p['lr'] = args.lr
@@ -61,15 +57,14 @@ def mkdir_exp_dir(args):
         log_file.write(key + ':' + str(val) + '\n')
     log_file.close()
 
+
 def get_parameters():
 
     args = Namespace()
+    """Dataset path"""
     # args.data_dir = '/host/space/horita-d/dataset/ifoodchallenge2019'
     args.data_dir = '/export/ssd/dataset/iFood2019'
     # args.data_dir = '/Users/daichi/Downloads/ifood'
-
-    # args.output_dir = './results/uecfood101foods100-adabound'
-    args.output_dir = './results/debug'
 
     args.train_dir = args.data_dir + os.sep + 'train_set'
     args.val_dir = args.data_dir + os.sep + 'val_set'
@@ -78,22 +73,20 @@ def get_parameters():
     args.train_labels_csv = args.data_dir + os.sep + 'train_labels.csv'
     args.val_labels_csv = args.data_dir + os.sep + 'val_labels.csv'
 
-    args.debug_weights = False
-    args.test_overfit = False
+    
+    """Number of class labels"""
     args.num_labels = 251
+    args.epochs = 500
+    args.num_output_labels = 3
     
     args.num_workers = 8
 
     args.pretrained = True
     args.start_epoch = 1
-    args.small = 1e-12
 
     """NTSNET"""
     args.PROPOSAL_NUM = 6
     args.CAT_NUM = 4
-
-    """ams"""
-    args.prof = True
 
 
     """Resume"""
@@ -101,33 +94,32 @@ def get_parameters():
     args.pretrained_model_path = None
     # args.resume = True # Pretrained model
 
-    # RESNEXT
-    ## args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101755_resnext10132x4d/ckpt/best-19-0.6727-resnext10132x4d.pth.tar'
-    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results2/reso2-Sgd-ParamFreeze-False-mixup-True-randomErasing-False-resume-True/201905131418_resnext10132x4d/ckpt/ckpt-69-0.7329-resnext10132x4d.pth.tar'
-    # NASNET
-    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_nasnetalarge/ckpt/best-8-0.6174-nasnetalarge.pth.tar'
-    # SENET
-    # args.pretrained_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/results/201905101757_senet154/ckpt/best-7-0.6845-senet154.pth.tar'
-
     """Pretrained UECFOOD100 or FOOD101"""
     args.pre_learned = True
     args.pre_dataset = 'UECFOOD'
     # args.pre_learned = False
 
     """mixup"""
-    args.mixup = True
-    # args.mixup = False
+    # args.mixup = True
+    args.mixup = False
     args.alpha = 1.
+
+    """Random Erasing"""
     # args.random_erasing = True
+    # args.random_erasing_p = 0.5
+    # args.random_erasing_sh = 0.4
+    # args.random_erasing_r1 = 0.3
     args.random_erasing = False
 
-    """model architecture"""
+    """Only linear?"""
     args.all_parameter_freeze = False
     # args.all_parameter_freeze = True
 
+    """Image size"""
     # args.resolution = 1
     args.resolution = 2
 
+    """Model architecture"""
     # # Pretrainedmodels
     # args.library_type = 'Pretrainedmodels'
     # # args.arch = 'default'
@@ -146,55 +138,39 @@ def get_parameters():
     args.arch = 'resnet50' # works
     # args.arch = 'resnet152' # works
 
+
     """Optimizer"""
     # args.optimizer = 'Adam'
     args.optimizer = 'Sgd'
     # args.optimizer = 'AdaBound'
 
+
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
-    args.lr_scheduler = 'CosineAnnealingLR'
-    # args.lr_scheduler = 'MultiStepLR'
+    # args.lr_scheduler = 'CosineAnnealingLR'
+    args.lr_scheduler = 'MultiStepLR'
+
 
     """Loss"""
     # args.loss_type = 'BCEWithLogitsLoss'
     args.loss_type = 'CrossEntropyLoss'
 
-    args.earlystopping_patience = 1          # early stopping patience is the number of epochs with no improvement after which training will be stopped
-    args.earlystopping_min_delta = 1e-5      # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement
-
-    args.evaluate = False
-    args.epochs = 500
     
-    # args.output_dir = os.path.join(args.output_dir, datetime.now().strftime('%Y%m%d_%H%M%S'))
-    args.output_dir = os.path.join(args.output_dir, 'debug')
+    """Save Path"""
+    args.save_path = './results/debug'
+    # args.save_path = './results/uecfood'
 
+    args.save_dir = os.path.join(args.save_path, '{}-{}'.format(args.arch, datetime.datetime.now().strftime('%Y%m%d_%H%M%S')))
 
-    """Random Erasing"""
-    args.random_erasing_p = 0.5
-    args.random_erasing_sh = 0.4
-    args.random_erasing_r1 = 0.3
+    args.ckpt_dir = os.path.join(args.save_dir, 'ckpt')
+    args.submission_dir = os.path.join(args.save_dir, 'submission')
 
-    args.tta = True
+    if os.path.exists(args.save_dir):
+        raise NameError('model dir exists!')
+    os.makedirs(args.save_dir)
+    os.makedirs(args.ckpt_dir)
+    os.makedirs(args.submission_dir)
 
-    args.output_id = args.arch
-    args.exp_dir = '{}-{}'.format(args.output_dir, args.output_id)
-    args.ckpt_dir = '{}/ckpt'.format(args.exp_dir)
-
-    args.ckpt = 'ckpt_%s.pth.tar' % (args.arch,)
-    args.best = 'best_%s.pth.tar' % (args.arch,)
-
-    args.num_output_labels = 3
-    args.sub_dir = args.exp_dir + os.sep + 'submissions'
-    
-    args.output_file = args.sub_dir + os.sep + 'output_%s_%s.csv' %  (args.output_id, args.output_id)
-    args.params_file = args.sub_dir + os.sep + 'params_%s.json' % args.output_id
-
-    args.log_dir = args.exp_dir
-
-    args.edata_json = '/home/yanai-lab/horita-d/ifood/src/edafa/imagenet.json'
-
-    
     num_of_gpus = torch.cuda.device_count()
     """Model Architecture"""
     if args.arch == 'pnasnet5large':
@@ -540,7 +516,8 @@ def get_parameters():
         args.T_max = args.epochs
         args.eta_min = 0.05
         args.last_epoch = 4e-4
-
+    
+    save_exp_info(args)
     return args
 
 
