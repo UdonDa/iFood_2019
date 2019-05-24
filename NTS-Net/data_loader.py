@@ -59,7 +59,7 @@ def create_transforms(args):
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    # RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
+                    RandomErasing(probability = arg---------s.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
                     ])
 
     val_tform = transforms.Compose([

@@ -2,11 +2,12 @@ from torch import nn
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-from core import resnet
+from core import resnet, densenet
 import numpy as np
 from core.anchors import generate_default_anchor_maps, hard_nms
 from config import CAT_NUM, PROPOSAL_NUM
 from core.premodels.models import *
+
 
 
 
@@ -60,13 +61,17 @@ def create_model_uecfood(args):
             model = resnet.resnet50(pretrained=True)
         elif args.arch == 'resnet152':
             model = resnet.resnet152(pretrained=True)
+        elif args.arch == 'densenet161':
+            model = densenet.densenet161()
+        elif args.arch == 'densenet169':
+            model = densenet.densenet169()
         model.avgpool = nn.AdaptiveAvgPool2d(1)
 
-        if args.pre_learned:
+        if args.resume_model_path is None:
             model.fc = nn.Linear(args.fv_size, args.num_labels_uecfood100)
         else:
+            print('aaa')
             model.fc = nn.Linear(args.fv_size, args.num_labels)
-
     elif args.library_type == 'Pretrainedmodels':
         if args.arch == 'pnasnet5large':
             model = pnasnet5large(pretrained=False)
@@ -85,12 +90,12 @@ def create_model_uecfood(args):
             model = resnext101_32x4d(pretrained=None)
         model.avg_pool = nn.AdaptiveAvgPool2d(1)
 
-        if args.pre_learned:
+        if args.resume_model_path is None:
             model.last_linear = nn.Linear(args.fv_size, args.num_labels_uecfood100)
         else:
             model.last_linear = nn.Linear(args.fv_size, args.num_labels)
 
-    if args.pre_learned:
+    if args.resume_model_path is None:
         print('==> Resuming from checkpoint..')
         pretrained_path = '/home/yanai-lab/horita-d/ifood/uecfood100/checkpoint/'
         if args.arch == 'pnasnet5large':
@@ -110,6 +115,10 @@ def create_model_uecfood(args):
             pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_res50_b8_e300.t7'
         elif args.arch == 'resnet152':
             pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_res152_b8_e300.t7'
+        elif args.arch == 'densenet161':
+            pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_den161_b8_e300.t7'
+        elif args.arch == 'densenet169':
+            pretrained_path = '/host/space0/ege-t/works/works/classification_pytorch/uecfood100/checkpoint/ckpt_den169_b8_e300_2.t7'
 
         checkpoint = torch.load(pretrained_path)
         state = convert_state_dict(checkpoint['net'])
@@ -141,23 +150,23 @@ def create_model_food101(args):
             model.fc = nn.Linear(args.fv_size, args.num_labels_food101)
         else:
             model.fc = nn.Linear(args.fv_size, args.num_labels)
-    
+
     elif args.library_type == 'Pretrainedmodels':
         if args.arch == 'pnasnet5large':
-            model = pnasnet5large(pretrained=False)
+            model = pnasnet5large()
         elif args.arch == 'nasnetalarge':
-            model = nasnetalarge(pretrained=False)
+            model = nasnetalarge()
         elif args.arch == 'senet154':
             model = senet154()
         elif args.arch == 'polynet':
-            model = polynet(pretrained=False)
+            model = polynet()
         elif args.arch == 'inceptionresnetv2':
             print('IMagenet!!!!!!!!!!!!!!')
             model = inceptionresnetv2()
         elif args.arch == 'inceptionv4':
             model = inceptionv4()
         elif args.arch == 'resnext10132x4d':
-            model = resnext101_32x4d(pretrained=None)
+            model = resnext101_32x4d()
         model.avg_pool = nn.AdaptiveAvgPool2d(1)
 
         if args.pre_learned:

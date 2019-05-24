@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.backends import cudnn
 import datetime
 import tensorboardX as tbx
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR
 # from config import BATCH_SIZE, PROPOSAL_NUM, SAVE_FREQ, LR, WD, resume, save_dir
 from core import modelNTS
 from core.utils import init_log, progress_bar
@@ -44,26 +44,35 @@ def get_optimizers(args, net):
     elif args.optimizer == 'AdaBound':
         raw_optimizer = AdaBound(raw_parameters, lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
         concat_optimizer = AdaBound(concat_parameters, lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
-        part_optimizer = AdaBound(part_parameters, lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
+        part_optimizer = AdaBound(part_parameters-----, lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
         partcls_optimizer = AdaBound(partcls_parameters, lr=args.lr,betas=(args.beta1, args.beta2),final_lr=args.final_lr,gamma=args.gamma)
-    
+
     return raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer
 
 
-def load_checkpoint(args, net):
+def load_checkpoint(args, net, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer):
     start_epoch = 1
     best_acc = 0
     ckpt = args.resume_model_path
     if ckpt is not None:
         if os.path.isfile(ckpt):
             print('==> Loading checkpoint...\n{}'.format(ckpt))
+            from core.modelNTS import convert_state_dict
             ckpt = torch.load(ckpt)
-            net.load_state_dict(ckpt['net_state_dict'])
+            # net
+            net.load_state_dict(convert_state_dict(ckpt['state_dict']))
+
+            # optimizer
+            #raw_optimizer.load_state_dict(ckpt['raw_optimizer'])
+            #concat_optimizer.load_state_dict(ckpt['concat_optimizer'])
+            #part_optimizer.load_state_dict(ckpt['part_optimizer'])
+            #partcls_optimizer.load_state_dict(ckpt['partcls_optimizer'])
+
             start_epoch = ckpt['epoch']
-            best_acc = checkpoint['best_acc']
+            best_acc = ckpt['best_acc']
         else:
             print('==> No checkpoint found at {}'.format(ckpt))
-    return net, start_epoch, best_acc
+    return net, start_epoch, best_acc, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer
 
 
 def save_checkpoint(state, args, epoch, best_acc):
@@ -82,25 +91,35 @@ trainloader, val_loader, test_loader, test_dset = get_data_loader(args)
 # define model
 net = modelNTS.attention_net(args)
 
+# define optimizer
+raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = get_optimizers(args, net)
+
 # Resume
-net, start_epoch, best_acc = load_checkpoint(args, net)
+# net, start_epoch, best_acc, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = load_checkpoint(args, net, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer)
 
 # Criterion
 criterion = nn.CrossEntropyLoss().cuda()
 
-# define optimizers
+#define optimizers
 raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = get_optimizers(args, net)
 
+net, start_epoch, best_acc, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = load_checkpoint(args, net, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer)
+
 # define schedulers
-schedulers = [MultiStepLR(raw_optimizer, milestones=[60, 100, 300], gamma=0.1),
-              MultiStepLR(concat_optimizer, milestones=[60, 100, 300], gamma=0.1),
-              MultiStepLR(part_optimizer, milestones=[60, 100, 300], gamma=0.1),
-              MultiStepLR(partcls_optimizer, milestones=[60, 100, 300], gamma=0.1)]
+# schedulers = [MultiStepLR(raw_optimizer, milestones=[40, 60, 100], gamma=0.1),
+#               MultiStepLR(concat_optimizer, milestones=[40, 60, 100], gamma=0.1),
+#               MultiStepLR(part_optimizer, milestones=[40, 60, 100], gamma=0.1),
+#               MultiStepLR(partcls_optimizer, milestones=[40, 60, 100], gamma=0.1)]
+
+schedulers = [CosineAnnealingLR(raw_optimizer, 300),
+              CosineAnnealingLR(concat_optimizer, 300),
+              CosineAnnealingLR(part_optimizer, 300),
+              CosineAnnealingLR(partcls_optimizer, 300)]
+
 
 # cuda and data parallel
 net = net.cuda()
 net = nn.DataParallel(net)
-
 
 start_time = time.time()
 
@@ -111,7 +130,7 @@ for epoch in range(start_epoch, args.epochs):
 
     """Training part"""
     net.train()
-    
+
     # define average meters
     total_loss_meter = AverageMeter()
     raw_loss_meter = AverageMeter()
@@ -142,7 +161,7 @@ for epoch in range(start_epoch, args.epochs):
 
         total_loss = raw_loss + rank_loss + concat_loss + partcls_loss
         total_loss.backward()
-        
+
         raw_optimizer.step()
         concat_optimizer.step()
         part_optimizer.step()
@@ -234,7 +253,7 @@ for epoch in range(start_epoch, args.epochs):
                 # measure elapsed time
                 et = time.time() - start_time
                 et = str(datetime.timedelta(seconds=et))[:-7]
-                
+
                 print('Val: [{0}][{1}/{2}]\t'
                     'Time: {time}\t'
                     'Loss: {loss_meter.avg:.4f}\t'
@@ -271,7 +290,7 @@ for epoch in range(start_epoch, args.epochs):
             'part_optimizer' : part_optimizer.state_dict(),
             'partcls_optimizer' : partcls_optimizer.state_dict(),
             }, args, epoch, best_acc)
-        
+
 
         """Testing part"""
         res = OrderedDict()

@@ -13,12 +13,12 @@ def get_output_fname(args):
 
 def get_hostname_timestamp_id():
     return str(datetime.now())[:16].replace(' ', '-').replace(':', '').replace('-', '')
-    
+
 def mkdir_p(d):
     os.makedirs(d, exist_ok=True)
 
 def save_exp_info(args):
-    
+
     logfile = os.path.join(args.save_dir, 'parameters.txt')
     log_file = open(logfile, 'w')
     p = OrderedDict()
@@ -73,15 +73,15 @@ def get_parameters():
     args.train_labels_csv = args.data_dir + os.sep + 'train_labels.csv'
     args.val_labels_csv = args.data_dir + os.sep + 'val_labels.csv'
 
-    
+
     """Number of class labels"""
     args.num_labels = 251
-    args.epochs = 500
+    args.epochs = 300
     args.num_output_labels = 3
     args.test_overfit = False
     args.num_labels_uecfood100 = 100
     args.num_labels_food101 = 101
-    
+
     args.num_workers = 8
 
     args.pretrained = True
@@ -94,7 +94,13 @@ def get_parameters():
 
     """Resume"""
     args.resume_model_path = None
-    
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/uecfood/resnet50-20190518_003738/ckpt/resnet50-27-0.7001'
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/food101/resnet152-20190518_010610/ckpt/resnet152-12-0.6916'
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/scratch/inceptionresnetv2-20190518_011052/ckpt/inceptionresnetv2-12-0.6579'
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/scratch/resnet50-20190518_002349/ckpt/resnet50-9-0.6537'
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/scratch/resnet152-20190518_002731/ckpt/resnet152-6-0.6265'
+    #args.resume_model_path = '/host/space/horita-d/programing/python/conf/cvpr2020/ifood_challenge2019/NTS-Net/results/uecfood/resnet152-20190518_003345/ckpt/resnet152-6-0.6187'
+
 
     """mixup"""
     # args.mixup = True
@@ -102,11 +108,11 @@ def get_parameters():
     args.alpha = 1.
 
     """Random Erasing"""
-    # args.random_erasing = True
-    # args.random_erasing_p = 0.5
-    # args.random_erasing_sh = 0.4
-    # args.random_erasing_r1 = 0.3
-    args.random_erasing = False
+    args.random_erasing = True
+    args.random_erasing_p = 0.5
+    args.random_erasing_sh = 0.3
+    args.random_erasing_r1 = 0.2
+    # args.random_erasing = False
 
 
     """Only linear?"""
@@ -120,16 +126,16 @@ def get_parameters():
 
 
     """Pretrained UECFOOD100 or FOOD101"""
-    # args.pre_learned = True
-    # args.pre_dataset = 'UECFOOD100'
+    args.pre_learned = True
+    args.pre_dataset = 'UECFOOD100'
     # args.pre_dataset = 'FOOD101'
 
-    args.pre_learned = False
-    args.pre_dataset = 'imagenet'
+    # args.pre_learned = False
+    # args.pre_dataset = 'imagenet'
 
 
     """Model architecture"""
-    args.library_type = 'Pretrainedmodels'
+    # args.library_type = 'Pretrainedmodels'
     # # args.arch = 'default'
     # args.arch = 'pnasnet5large' # rankinglossがnanになる
 
@@ -137,39 +143,46 @@ def get_parameters():
     # args.arch = 'resnext10132x4d' # works
     # args.arch = 'senet154' # works
     # args.arch = 'polynet'
-    args.arch = 'inceptionresnetv2' #works
-    # args.arch = 'inceptionv4' #works
+    #args.arch = 'inceptionresnetv2' #works
+    #args.arch = 'inceptionv4' #works
 
-    # args.library_type = 'torchvisions'
+    args.library_type = 'torchvisions'
     # args.arch = 'resnet18'
-    # args.arch = 'resnet50' # works
+    args.arch = 'resnet50' # works
     # args.arch = 'resnet152' # works
+    # args.arch = 'densenet161'
+    # args.arch = 'densenet169'
 
     """Save Path"""
     # args.save_path = './results/debug'
     # args.save_path = './results/uecfood'
-    args.save_path = './results/scratch'
+    # args.save_path = './results/scratch'
     # args.save_path = './results/food101'
+
+    args.save_path = './results2/debug'
+    # args.save_path = './results2/uecfood'
+    # args.save_path = './results2/scratch'
+    # args.save_path = './results2/food101'
 
 
     """Optimizer"""
     # args.optimizer = 'Adam'
-    # args.optimizer = 'Sgd'
-    args.optimizer = 'AdaBound'
+    args.optimizer = 'Sgd'
+    # args.optimizer = 'AdaBound'
 
 
     """Lr Scheduler"""
     # args.lr_scheduler = 'ReduceLROnPlateau' # [ReduceLROnPlateau, ]
-    # args.lr_scheduler = 'CosineAnnealingLR'
-    args.lr_scheduler = 'MultiStepLR'
+    args.lr_scheduler = 'CosineAnnealingLR'
+    # args.lr_scheduler = 'MultiStepLR'
 
 
     """Loss"""
     # args.loss_type = 'BCEWithLogitsLoss'
     args.loss_type = 'CrossEntropyLoss'
 
-    
-    
+
+
 
     args.save_dir = os.path.join(args.save_path, '{}-{}'.format(args.arch, datetime.datetime.now().strftime('%Y%m%d_%H%M%S')))
 
@@ -251,7 +264,7 @@ def get_parameters():
                 if num_of_gpus == 8:
                     args.batch_size = 14
             args.val_batch_size = args.batch_size
-    
+
     elif args.arch == 'resnext10132x4d':
         args.fv_size = 2048
         args.imagenet_mean = [0.485, 0.456, 0.406]
@@ -466,7 +479,7 @@ def get_parameters():
             if num_of_gpus == 2:
                 args.batch_size = 20
             elif num_of_gpus == 4:
-                args.batch_size = 40
+                args.batch_size = 44
             elif num_of_gpus == 10:
                 args.batch_size = 80
         print('args.batch_size: ', args.batch_size)
@@ -495,7 +508,30 @@ def get_parameters():
                 args.batch_size = 50
             args.val_batch_size = args.batch_size
 
-    
+    elif args.arch == 'densenet161':
+        args.fv_size = 2208
+        args.imagenet_mean = [0.485, 0.456, 0.406]
+        args.imagenet_std = [0.229, 0.224, 0.225]
+        if args.resolution == 1:
+            args.image_min_size = 256
+            args.nw_input_size = 224
+            if num_of_gpus == 2:
+                args.batch_size = 300
+                args.val_batch_size = 10
+            elif num_of_gpus == 4:
+                args.batch_size = 80
+                args.val_batch_size = 10
+        elif args.resolution == 2:
+            args.image_min_size = 478
+            args.nw_input_size = 448
+            if num_of_gpus == 2:
+                args.batch_size = 8
+            elif num_of_gpus == 4:
+                args.batch_size = 12
+            elif num_of_gpus == 10:
+                args.batch_size = 50
+            args.val_batch_size = args.batch_size
+
     args.pretrain_dset_mean = args.imagenet_mean
     args.pretrain_dset_std = args.imagenet_std
 
@@ -508,15 +544,16 @@ def get_parameters():
         args.weight_decay = 5e-4
     elif args.optimizer == 'Sgd':
         args.lr = 0.001 # 0.1はダメ -> 0.001が良さげ
+        #args.lr = 0.0001
         args.momentum = 0.9
         args.weight_decay = 1e-4
         args.nesterov = True
     elif args.optimizer == 'AdaBound':
-        # args.lr = 1e-3
-        args.lr = 1e-4
+        args.lr = 1e-3
+        # args.lr = 1e-4
         args.beta1 = 0.9
         args.beta2 = 0.999
-        # args.final_lr = 0.1
+        # args.final_lr = 0.1-------------------------------------
         args.final_lr = 0.01
         args.gamma = 1e-3
 
@@ -529,7 +566,7 @@ def get_parameters():
         args.T_max = args.epochs
         args.eta_min = 0.05
         args.last_epoch = 4e-4
-    
+
     save_exp_info(args)
     print('Batch size: ', args.batch_size)
     return args
@@ -538,3 +575,4 @@ def get_parameters():
 if __name__ == '__main__':
     args = get_parameters()
     print(args.output_id)
+0
