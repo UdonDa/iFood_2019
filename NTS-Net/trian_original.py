@@ -17,6 +17,7 @@ import argparse
 from sys import exit
 from adabound_optim import AdaBound
 from collections import OrderedDict
+from vat import VAT
 
 
 # Parser
@@ -99,6 +100,10 @@ raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = get_optimiz
 
 # Criterion
 criterion = nn.CrossEntropyLoss().cuda()
+eps = 1.0
+xi = 10.0
+use_entmin = True
+vat_criterion = VAT(device, eps, xi, use_entmin=use_entmin)
 
 #define optimizers
 raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = get_optimizers(args, net)
@@ -106,15 +111,15 @@ raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = get_optimiz
 net, start_epoch, best_acc, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer = load_checkpoint(args, net, raw_optimizer, concat_optimizer, part_optimizer, partcls_optimizer)
 
 # define schedulers
-# schedulers = [MultiStepLR(raw_optimizer, milestones=[40, 60, 100], gamma=0.1),
-#               MultiStepLR(concat_optimizer, milestones=[40, 60, 100], gamma=0.1),
-#               MultiStepLR(part_optimizer, milestones=[40, 60, 100], gamma=0.1),
-#               MultiStepLR(partcls_optimizer, milestones=[40, 60, 100], gamma=0.1)]
+schedulers = [MultiStepLR(raw_optimizer, milestones=[40, 50, 60, 70, 80, 90, 100], gamma=0.1),
+              MultiStepLR(concat_optimizer, milestones=[40, 50, 60, 70, 80, 90, 100], gamma=0.1),
+              MultiStepLR(part_optimizer, milestones=[40, 50, 60, 70, 80, 90, 100], gamma=0.1),
+              MultiStepLR(partcls_optimizer, milestones=[40, 50, 60, 70, 80, 90, 100], gamma=0.1)]
 
-schedulers = [CosineAnnealingLR(raw_optimizer, 300),
-              CosineAnnealingLR(concat_optimizer, 300),
-              CosineAnnealingLR(part_optimizer, 300),
-              CosineAnnealingLR(partcls_optimizer, 300)]
+# schedulers = [CosineAnnealingLR(raw_optimizer, 300),
+#               CosineAnnealingLR(concat_optimizer, 300),
+#               CosineAnnealingLR(part_optimizer, 300),
+#               CosineAnnealingLR(partcls_optimizer, 300)]
 
 
 # cuda and data parallel

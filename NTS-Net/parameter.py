@@ -196,6 +196,7 @@ def get_parameters():
     os.makedirs(args.submission_dir)
 
     num_of_gpus = torch.cuda.device_count()
+    args.batch_size = 8
     """Model Architecture"""
     if args.arch == 'pnasnet5large':
         args.fv_size = 4320
@@ -568,7 +569,7 @@ def get_parameters():
         args.last_epoch = 4e-4
 
     save_exp_info(args)
-    print('Batch size: ', args.batch_size)
+    # print('Batch size: ', args.batch_size)
     return args
 
 

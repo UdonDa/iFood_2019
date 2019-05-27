@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from augments import RandomErasing
 
+import torch
+
+
 def create_transforms(args):
     train_tform = None
     if args.test_overfit:
@@ -29,26 +32,6 @@ def create_transforms(args):
                                     std=args.pretrain_dset_std)
                                          ])
     else:
-#         train_tform = transforms.Compose([transforms.RandomResizedCrop(args.image_min_size,
-#                                                                        scale=(1.0, 1.0),
-#                                                                        scale=(0.8, 1.2),
-#                                                                        scale=(0.08, 1.0),
-#                                                                        ratio=(3. / 4., 4. / 3.),
-#                                                                        ratio=(float(args.nw_input_size) / float(args.image_min_size),
-#                                                                               float(args.image_min_size) / float(args.nw_input_size)
-#                                                                              ),
-#                                                                        ratio=(1.0, 1.0),
-#                                                                        interpolation=Image.BILINEAR
-#                                                                       ),
-#         train_tform = transforms.Compose([transforms.RandomAffine(0,
-#                                                                   translate=(0., 0.),
-#                                                                   translate=(0.25, 0.25),
-# #                                                                   scale=(3. /4., 4. / 3.),
-#                                                                   scale=(1., 1.),
-#                                                                   shear=0,
-#                                                                   shear=20,
-#                                                                   resample=PIL.Image.BILINEAR,
-#                                                                   fillcolor=0),
         train_tform = transforms.Compose([
                     transforms.Resize(args.image_min_size),
                     transforms.RandomHorizontalFlip(),
@@ -59,7 +42,7 @@ def create_transforms(args):
                     transforms.ToTensor(),
                     transforms.Normalize(mean=args.pretrain_dset_mean,
                                         std=args.pretrain_dset_std),
-                    RandomErasing(probability = arg---------s.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
+                    # RandomErasing(probability = args.random_erasing_p, sh = args.random_erasing_sh, r1 = args.random_erasing_r1)
                     ])
 
     val_tform = transforms.Compose([
@@ -75,42 +58,58 @@ import torch.utils.data as data
 from copy import copy
 import numpy as np
 
-def parse_info(csv_path):
-        df = pd.read_csv(csv_path)
-        img_name = df['img_name'].tolist()
-        label = df['label'].tolist()
-        return (np.array(img_name), np.array(label))
+def parse_split_info(csv_path):
+    df = pd.read_csv(csv_path)
+    df = df.sample(frac=1)
+    df_1, df_2 = df[:80000], df[80000:]
+
+    img_name_1 = df_1['img_name'].tolist()
+    img_name_2 = df_2['img_name'].tolist()
+
+    label_1 = df_1['label'].tolist()
+    label_2 = df_2['label'].tolist()
+    return (np.array(img_name_1), np.array(label_1)), (np.array(img_name_2), np.array(label_2))
 
 def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
+
+
+class InfiniteSampler(torch.utils.data.sampler.Sampler):
+    def __init__(self, num_samples):
+        self.num_samples = num_samples
+
+    def __iter__(self):
+        return iter(self.loop())
+
+    def __len__(self):
+        return 2 ** 31
+
+    def loop(self):
+        # i = 0
+        i = self.num_samples - 1
+        order = np.random.permutation(self.num_samples)
+        while True:
+            yield order[i]
+            i += 1
+            if i >= self.num_samples:
+                np.random.seed()
+                order = np.random.permutation(self.num_samples)
+                i = 0
+
       
 class FoodDataset(data.Dataset):
-        def __init__(self, root, csv_path, num_labels=250, transform=None, target_transform=None, test=False):
+        def __init__(self, root, csv_path, num_labels=250, transform=None, target_transform=None, l=None):
             self.root = root
-            if not test:
-                self.img_name, self.label = parse_info(csv_path)
-            else:
-                self.img_name = sorted(glob('{}/*.jpg'.format(root)))
+            self.img_name, self.label = l
             self.num_labels = num_labels
             self.transform = transform
-            self.test = test
 
         def __getitem__(self, index):
-            label = torch.randn(3)
-            if not self.test:
-                img, label = self.img_name[index], self.label[index]
-                img = '{}/{}'.format(self.root, img)
-            else:
-                img = self.img_name[index]
-                label = torch.Tensor(0)
-            
-            # # Make label # TODO: For without cross entropy
-            # zeros = torch.zeros(self.num_labels)
-            # if not self.test:
-            #     zeros[label] = 1
-            
+            img, label = self.img_name[index], self.label[index]
+            img = '{}/{}'.format(self.root, img)
+        
             # Make img
             img = pil_loader(img)
             img = self.transform(img)
@@ -160,7 +159,11 @@ def imsave(img):
 
 def get_data_loader(args):
     train_tform, val_tform = create_transforms(args)
-    train_dset = FoodDataset(args.train_dir, args.train_labels_csv, args.num_labels, transform=train_tform)
+
+    train_l, train_ul = parse_split_info(args.train_labels_csv)
+
+    train_dset = FoodDataset(args.train_dir, args.train_labels_csv, args.num_labels, transform=train_tform, l=train_l)
+    train_ul_dset = FoodDataset(args.train_dir, args.train_labels_csv, args.num_labels, transform=train_tform, l=train_ul)
     val_dset = FoodDataset(args.val_dir, args.val_labels_csv, args.num_labels, transform=val_tform)
     test_dset = FoodDatasetTest(root=args.test_dir, num_labels=args.num_labels, transform=val_tform)
 
@@ -169,6 +172,14 @@ def get_data_loader(args):
                                            shuffle=True,
                                            num_workers=args.num_workers,
                                         #    pin_memory=True,
+                                            sampler=InfiniteSampler(len(train_l[0]))
+                                          )
+    train_loader = torch.utils.data.DataLoader(train_dset,
+                                           batch_size=args.batch_size,
+                                           shuffle=True,
+                                           num_workers=args.num_workers,
+                                        #    pin_memory=True,
+                                            sampler=InfiniteSampler(len(train_l[0]))
                                           )
     val_loader = torch.utils.data.DataLoader(val_dset,
                                          batch_size=args.val_batch_size,
@@ -189,15 +200,6 @@ def get_data_loader(args):
 if __name__ == '__main__':
     from parameter import get_parameters
     args = get_parameters()
-    
-    train_dset, val_dset, test_dset = get_data_loader(args)
 
-    from random import randint
-    train_dset, val_dset, test_dset = iter(train_dset), iter(val_dset), iter(test_dset)
-    a, b = train_dset.next()
-    # imshow(torchvision.utils.make_grid(a))
-    # a, b = val_dset.next()
-    # imshow(torchvision.utils.make_grid(a))
-    # a, b = test_dset.next()
-    # imshow(torchvision.utils.make_grid(a))
-    # imsave(torchvision.utils.make_grid(a))
+    # df = parse_info(args.train_labels_csv)
+    df = parse_info('/Users/daichi/Downloads/ifood/train_labels.csv')
